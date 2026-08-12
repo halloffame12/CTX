@@ -1,4 +1,4 @@
-# ctx — Windows installer
+﻿# ctx — Windows installer
 #
 #   irm https://ctx.dev/install.ps1 | iex
 #   $env:CTX_VERSION = "v0.2.0"; irm https://ctx.dev/install.ps1 | iex
@@ -79,7 +79,7 @@ try {
     $newPath = if ([string]::IsNullOrEmpty($userPath)) { $binDir } else { "$userPath;$binDir" }
     [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
     Write-Info "  added $binDir to your user PATH"
-    Write-Info "  restart your terminal (or run: `$env:Path = \"$binDir;\" + `$env:Path)"
+    Write-Info ('  restart your terminal (or run: $env:Path = "{0};" + $env:Path)' -f $binDir)
   }
 
   $ver = & $exePath --version 2>&1 | Select-Object -First 1

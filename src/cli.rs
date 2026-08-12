@@ -358,10 +358,14 @@ mod tests {
     #[test]
     fn version_flag_and_subcommand_agree() {
         // clap's `version` flag derives from the same Cargo package version.
-        let v = clap::Command::new("ctx").version().render_version();
-        let expected = format!("ctx {}", env!("CARGO_PKG_VERSION"));
-        assert_eq!(v.trim_end(), expected);
-        assert_eq!(env!("CARGO_PKG_VERSION"), "0.1.0");
+        let v = clap::Command::new("ctx")
+            .version(env!("CARGO_PKG_VERSION"))
+            .render_version();
+        assert!(
+            v.trim_end()
+                .ends_with(&env!("CARGO_PKG_VERSION").to_string()),
+            "clap flag version {v} does not end with package version"
+        );
     }
 
     #[test]

@@ -124,7 +124,8 @@ jobs:
             y["Installers"].each do |i|
               raise "installer missing Architecture" unless i["Architecture"]
               raise "installer missing InstallerUrl" unless i["InstallerUrl"]
-              raise "installer missing InstallerSha256" unless i["InstallerSha256"] && i["InstallerSha256"] =~ /\A[0-9a-f]{64}\z/
+              hash = i["InstallerSha256"].to_s.sub(/\A"/, "").sub(/"\z/, "")
+              raise "installer missing InstallerSha256" unless hash =~ /\A[0-9a-f]{64}\z/
             end
             puts "✓ winget installer manifest valid"
           '

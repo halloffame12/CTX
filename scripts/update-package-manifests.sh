@@ -16,11 +16,17 @@ sha() { grep -m1 "  $1$" "$CHK" | awk '{print $1}'; }
 W="$ROOT/packaging/winget/CTX.installer.yaml"
 x64="$(sha ctx-windows-x86_64.exe)"
 arm="$(sha ctx-windows-aarch64.exe)"
-sed -i -E \
-  -e 's/^(ReleaseDate: ).*/\1'"$(date -u +%Y-%m-%d)"'/' \
-  -e "0,/(InstallerSha256: )[0-9a-f]{64}/s//\1$x64/" \
-  -e "s/(InstallerSha256: )[0-9a-f]{64}/\1$arm/" \
-  "$W"
+sed -i -E 's/^(ReleaseDate: ).*/\1'"$(date -u +%Y-%m-%d)"'/' "$W"
+awk -v x64="$x64" -v arm="$arm" '
+  /InstallerSha256:/ {
+    if (!seen++) {
+      gsub(/"?[0-9a-f]{64}"?/, "\"" x64 "\"")
+    } else {
+      gsub(/"?[0-9a-f]{64}"?/, "\"" arm "\"")
+    }
+  }
+  { print }
+' "$W" > "$W.tmp" && mv "$W.tmp" "$W"
 echo "winget: CTX.installer.yaml updated"
 
 # ---- scoop manifest ---------------------------------------------------------
