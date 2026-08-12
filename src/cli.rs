@@ -258,7 +258,9 @@ pub fn run() -> CtxResult<()> {
         Command::Version => {
             let v = concat!("ctx ", env!("CARGO_PKG_VERSION"));
             if t.is_json() {
-                crate::output::emit_json(&serde_json::json!({ "name": "ctx", "version": env!("CARGO_PKG_VERSION") }));
+                crate::output::emit_json(
+                    &serde_json::json!({ "name": "ctx", "version": env!("CARGO_PKG_VERSION") }),
+                );
             } else {
                 println!("{v}");
             }
@@ -372,8 +374,20 @@ mod tests {
     fn all_expected_subcommands_exist() {
         let cmd = Cli::command();
         for name in [
-            "init", "skeleton", "search", "symbol", "deps", "impact", "context",
-            "changed", "diff", "schema", "benchmark", "watch", "mcp", "doctor",
+            "init",
+            "skeleton",
+            "search",
+            "symbol",
+            "deps",
+            "impact",
+            "context",
+            "changed",
+            "diff",
+            "schema",
+            "benchmark",
+            "watch",
+            "mcp",
+            "doctor",
             "version",
         ] {
             assert!(
