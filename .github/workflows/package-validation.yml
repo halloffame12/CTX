@@ -113,13 +113,13 @@ jobs:
         run: |
           set -e
           for f in packaging/winget/CTX.yaml packaging/winget/CTX.locale.en-US.yaml packaging/winget/CTX.installer.yaml; do
-            ruby -e "require 'yaml'; YAML.load_file('$f'); puts 'ok: $f'"
+            ruby -e "require 'yaml'; YAML.unsafe_load_file('$f'); puts 'ok: $f'"
           done
       - name: Installer manifest has required fields
         run: |
           ruby -e '
             require "yaml"
-            y = YAML.load_file("packaging/winget/CTX.installer.yaml")
+            y = YAML.unsafe_load_file("packaging/winget/CTX.installer.yaml")
             %w[PackageIdentifier PackageVersion InstallerType Installers].each { |k| raise "missing #{k}" unless y.key?(k) }
             y["Installers"].each do |i|
               raise "installer missing Architecture" unless i["Architecture"]
