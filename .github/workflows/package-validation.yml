@@ -164,6 +164,8 @@ jobs:
       - name: powershell syntax check (pwsh)
         shell: pwsh
         run: |
-          $null = [System.Management.Automation.Language.Parser]::ParseFile("scripts/install.ps1", [ref]$null, [ref]$errs)
+          $tokens = $null
+          $errs = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile("scripts/install.ps1", [ref]$tokens, [ref]$errs)
           if ($errs.Count -gt 0) { $errs | ForEach-Object { Write-Error $_.Message }; exit 1 }
           Write-Host "✓ install.ps1 parses cleanly"
