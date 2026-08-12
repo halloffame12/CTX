@@ -3,29 +3,70 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  # ---- version consistency gate ---------------------------------------------
+  # Fails the release before publishing if any packaging version diverges from
+  # Cargo.toml (single source of truth).
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check package versions match Cargo.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(grep '^version' Cargo.toml | head -1 | sed -E 's/version *= *"([^"]+)"/\1/')"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$version" ]; then
+            echo "tag v${tag} != Cargo version ${version}" >&2
+            exit 1
+          fi
+          for f in packages/npm/cli/package.json \
+                   packages/npm/linux-x64/package.json \
+                   packages/npm/linux-arm64/package.json \
+                   packages/npm/darwin-x64/package.json \
+                   packages/npm/darwin-arm64/package.json \
+                   packages/npm/win32-x64/package.json \
+                   packages/npm/win32-arm64/package.json; do
+            node -e "const p=require('./$f'); if(p.version!=='$version'){console.error('$f has '+p.version);process.exit(1)}"
+          done
+          node -e "const p=require('./packages/npm/cli/package.json'); for(const k of Object.keys(p.optionalDependencies)){if(p.optionalDependencies[k]!=='$version'){console.error('optionalDependencies.'+k+' mismatch');process.exit(1)}}"
+          echo "✓ all package versions are ${version}"
+
+  # ---- build matrix ----------------------------------------------------------
   release:
+    needs: verify-version
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            name: ctx-linux-x86_64
             cross: false
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            name: ctx-linux-aarch64
             cross: true
           - os: macos-13
             target: x86_64-apple-darwin
+            name: ctx-macos-x86_64
             cross: false
           - os: macos-14
             target: aarch64-apple-darwin
+            name: ctx-macos-aarch64
             cross: false
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            name: ctx-windows-x86_64.exe
+            cross: false
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            name: ctx-windows-aarch64.exe
             cross: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -59,23 +100,18 @@ jobs:
           "$bin" --version
           "$bin" --help > /dev/null
 
-      - name: Prepare artifact
+      - name: Stage artifact
         shell: bash
         run: |
           bin="target/${{ matrix.target }}/release/ctx"
           if [ "${{ runner.os }}" = "Windows" ]; then bin="$bin.exe"; fi
           mkdir -p dist
-          name="ctx-${{ matrix.target }}"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "$bin" "dist/$name.exe"
-          else
-            cp "$bin" "dist/$name"
-          fi
+          cp "$bin" "dist/${{ matrix.name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ctx-${{ matrix.target }}
+          name: ${{ matrix.name }}
           path: dist/
 
   checksums:
@@ -90,7 +126,7 @@ jobs:
         shell: bash
         run: |
           cd dist
-          sha256sum * > checksums.txt
+          sha256sum ctx-* > checksums.txt
           cat checksums.txt
       - uses: actions/upload-artifact@v4
         with:
@@ -109,4 +145,32 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/**
+          body: |
+            ## ctx ${{ github.ref_name }}
+
+            **New in this release:** see [CHANGELOG.md](CHANGELOG.md).
+
+            **Supported languages:** TypeScript, JavaScript, Python, Rust, Go.
+
+            ### Install
+
+            ```bash
+            # Homebrew (macOS / Linux)
+            brew tap halloffame12/CTX
+            brew install ctx
+
+            # npm
+            npm install -g @ctx/cli
+
+            # Rust
+            cargo install ctx-cli
+
+            # Direct download (below)
+            # macOS / Linux
+            curl -fsSL https://github.com/halloffame12/CTX/releases/latest/download/ctx-linux-x86_64 -o ctx
+            chmod +x ctx && ./ctx --version
+            ```
+
+            **Verification:** every artifact hash is in `checksums.txt`
+            (SHA-256). Never run an unverified binary.
           generate_release_notes: true

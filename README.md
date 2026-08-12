@@ -45,7 +45,37 @@ tokens. `ctx` addresses that with:
 `ctx` is **local, fast, private and offline**: nothing is sent anywhere, no
 code is executed, no telemetry.
 
-## Installation
+## Install ctx
+
+The `ctx` command is one native, compiled Rust binary — install it through
+whichever ecosystem you already use:
+
+| Method | Command |
+| --- | --- |
+| **macOS / Linux** (Homebrew) | `brew tap halloffame12/CTX && brew install ctx` |
+| **Windows** (Winget) | `winget install halloffame12.CTX` |
+| **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-bucket && scoop install ctx` |
+| **Node.js** (npm) | `npm install -g @ctx/cli` |
+| **Run without installing** | `npx @ctx/cli --version` |
+| **Rust** (cargo) | `cargo install ctx-cli` |
+| **Direct** | `curl -fsSL https://ctx.dev/install.sh \| sh` (Unix) or `irm https://ctx.dev/install.ps1 \| iex` (Windows) — or grab a binary from [GitHub Releases](https://github.com/halloffame12/CTX/releases) |
+
+> The installer scripts currently live in the repository (`scripts/install.sh`,
+> `scripts/install.ps1`). Until `ctx.dev` is live you can run them directly:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/halloffame12/CTX/main/scripts/install.sh | sh
+> ```
+>
+> ```powershell
+> irm https://raw.githubusercontent.com/halloffame12/CTX/main/scripts/install.ps1 | iex
+> ```
+
+Every method installs the **same** binary, verified against SHA-256 checksums
+published with each release. No Rust toolchain is required except for
+`cargo install`.
+
+### Building from source
 
 Requires Rust 1.85+ (edition 2024). On Windows, a GNU toolchain is recommended
 for the bundled SQLite build:
@@ -60,9 +90,12 @@ cargo build --release
 cargo install --path .        # installs `ctx` to PATH
 ```
 
-> Release binaries are produced for Linux (x86_64 + ARM64), macOS (Intel +
-> Apple Silicon) and Windows (x86_64) from the GitHub Actions release workflow,
-> so users don't need Rust installed.
+Version is read from the git tag / Cargo.toml:
+
+```bash
+ctx --version   # ctx 0.1.0
+ctx version     # same
+```
 
 ## Quick start
 
@@ -345,7 +378,15 @@ cargo fmt --check
 
 GitHub Actions CI runs fmt, clippy (`-D warnings`, all targets/features), tests
 and release builds on Linux / macOS / Windows. The release workflow publishes
-prebuilt binaries with a `checksums.txt` for each tag.
+prebuilt binaries (6 targets) with a `checksums.txt` for each tag, and the
+npm workflow publishes the `@ctx/cli` meta package + 6 platform packages with
+provenance. `package-validation.yml` keeps all packaging in sync with
+`Cargo.toml`. See [RELEASE.md](RELEASE.md) for the full release checklist.
+
+Packaging lives in `packaging/` (Homebrew tap, Winget, Scoop) and `packages/`
+(npm). Release tooling is in `scripts/` (`build-release.sh`,
+`verify-release.sh`, `generate-checksums.sh`, `install.sh`, `install.ps1`,
+`update-homebrew.sh`, `update-package-manifests.sh`).
 
 > Note: `cargo test --bin ctx` may be blocked by Windows Application Control
 > policy on some machines (os error 4551); the library, integration and golden

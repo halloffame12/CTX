@@ -1,0 +1,11 @@
+{
+  "name": "@ctx/cli-darwin-x64",
+  "version": "0.1.0",
+  "description": "ctx native binary for macOS x64",
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "files": ["bin", "README.md"],
+  "exports": { "./binary": "./bin/ctx" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/halloffame12/CTX.git" }
+}

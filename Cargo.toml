@@ -1,7 +1,24 @@
 [package]
-name = "ctx"
+name = "ctx-cli"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "Codebase intelligence and context engine for AI coding agents"
+license = "MIT"
+repository = "https://github.com/halloffame12/CTX"
+homepage = "https://github.com/halloffame12/CTX"
+keywords = ["mcp", "code-intelligence", "code-graph", "context", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+default-run = "ctx"
+
+[[bin]]
+name = "ctx"
+path = "src/main.rs"
+
+[lib]
+name = "ctx"
+path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0.104"

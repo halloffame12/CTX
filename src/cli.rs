@@ -11,8 +11,7 @@ use crate::output::{Default, Term};
     name = "ctx",
     version,
     about = "Codebase intelligence and context engine for AI coding agents",
-    subcommand_required = true,
-    arg_required_else_help = true
+    after_help = "Run `ctx` with no arguments for a quick overview, or `ctx <command> --help` for details."
 )]
 pub struct Cli {
     /// Project root (defaults to the nearest directory containing .ctx)
@@ -36,7 +35,7 @@ pub struct Cli {
     no_color: bool,
 
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -145,6 +144,9 @@ enum Command {
 
     /// Inspect the project and report the health of the ctx index
     Doctor,
+
+    /// Print version information
+    Version,
 }
 
 pub fn run() -> CtxResult<()> {
@@ -157,7 +159,12 @@ pub fn run() -> CtxResult<()> {
 
     let cwd = std::env::current_dir()?;
 
-    match cli.command {
+    let Some(command) = cli.command else {
+        welcome();
+        return Ok(());
+    };
+
+    match command {
         Command::Init { path, force } => {
             let root = cli.root.or(path);
             commands::init::cmd_init(&cwd, force, root.as_deref(), &t)?;
@@ -248,8 +255,36 @@ pub fn run() -> CtxResult<()> {
         Command::Doctor => {
             commands::doctor::cmd_doctor(&cwd, cli.root.as_deref(), &t)?;
         }
+        Command::Version => {
+            let v = concat!("ctx ", env!("CARGO_PKG_VERSION"));
+            if t.is_json() {
+                crate::output::emit_json(&serde_json::json!({ "name": "ctx", "version": env!("CARGO_PKG_VERSION") }));
+            } else {
+                println!("{v}");
+            }
+        }
     }
     Ok(())
+}
+
+fn welcome() {
+    println!("ctx — Context Intelligence Engine");
+    println!();
+    println!("Understand your codebase.");
+    println!("Give AI coding agents the context they actually need.");
+    println!();
+    println!("Usage:");
+    println!("  ctx init");
+    println!("  ctx context");
+    println!("  ctx search");
+    println!("  ctx symbol");
+    println!("  ctx impact");
+    println!("  ctx mcp");
+    println!();
+    println!("Run:");
+    println!("  ctx init");
+    println!();
+    println!("See `ctx --help` for all commands.");
 }
 
 fn init_tracing(verbose: bool) {
@@ -305,4 +340,46 @@ fn _colors() -> Vec<u8> {
         Default::MAGENTA,
         Default::CYAN,
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn version_parses_as_subcommand() {
+        let cli = Cli::try_parse_from(["ctx", "version"]).expect("parse");
+        assert!(matches!(cli.command, Some(Command::Version)));
+    }
+
+    #[test]
+    fn version_flag_and_subcommand_agree() {
+        // clap's `version` flag derives from the same Cargo package version.
+        let v = clap::Command::new("ctx").version().render_version();
+        let expected = format!("ctx {}", env!("CARGO_PKG_VERSION"));
+        assert_eq!(v.trim_end(), expected);
+        assert_eq!(env!("CARGO_PKG_VERSION"), "0.1.0");
+    }
+
+    #[test]
+    fn no_command_is_ok() {
+        let cli = Cli::try_parse_from(["ctx"]).expect("parse with no subcommand");
+        assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn all_expected_subcommands_exist() {
+        let cmd = Cli::command();
+        for name in [
+            "init", "skeleton", "search", "symbol", "deps", "impact", "context",
+            "changed", "diff", "schema", "benchmark", "watch", "mcp", "doctor",
+            "version",
+        ] {
+            assert!(
+                cmd.get_subcommands().any(|c| c.get_name() == name),
+                "missing subcommand: {name}"
+            );
+        }
+    }
 }

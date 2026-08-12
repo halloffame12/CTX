@@ -1,0 +1,28 @@
+{
+  "name": "@ctx/cli",
+  "version": "0.1.0",
+  "description": "ctx — codebase intelligence and context engine for AI coding agents (native Rust binary launcher)",
+  "license": "MIT",
+  "bin": { "ctx": "bin/ctx.js" },
+  "files": ["bin", "README.md"],
+  "repository": { "type": "git", "url": "https://github.com/halloffame12/CTX.git" },
+  "funding": { "type": "github", "url": "https://github.com/sponsors/halloffame12" },
+  "engines": { "node": ">=16" },
+  "optionalDependencies": {
+    "@ctx/cli-linux-x64": "0.1.0",
+    "@ctx/cli-linux-arm64": "0.1.0",
+    "@ctx/cli-darwin-x64": "0.1.0",
+    "@ctx/cli-darwin-arm64": "0.1.0",
+    "@ctx/cli-win32-x64": "0.1.0",
+    "@ctx/cli-win32-arm64": "0.1.0"
+  },
+  "keywords": [
+    "ctx",
+    "code-intelligence",
+    "code-graph",
+    "code-search",
+    "mcp",
+    "context-engine",
+    "cli"
+  ]
+}

@@ -1,0 +1,4 @@
+# Platform binaries are staged by scripts/stage-npm-binaries.sh at release
+# time and must never be committed to the repository.
+*/bin/ctx
+*/bin/ctx.exe

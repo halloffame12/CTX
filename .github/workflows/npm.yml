@@ -1,0 +1,117 @@
+name: npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match Cargo.toml), e.g. 0.1.0"
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # for provenance
+
+env:
+  NPM_VERSION: ${{ inputs.version || github.event.release.tag_name }}
+
+jobs:
+  # ---- guard: only publish the versions that actually exist ------------------
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve + verify requested version matches Cargo + repo
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${NPM_VERSION#v}"   # strip leading 'v' from tags
+          [ -n "$version" ] || { echo "no version provided" >&2; exit 1; }
+          cargo_version="$(grep '^version' Cargo.toml | head -1 | sed -E 's/version *= *"([^"]+)"/\1/')"
+          [ "$version" = "$cargo_version" ] || { echo "requested ${version} != Cargo ${cargo_version}" >&2; exit 1; }
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "✓ publishing npm ${version}"
+
+  stage-and-publish:
+    needs: verify
+    strategy:
+      matrix:
+        include:
+          - package: linux-x64
+            artifact: ctx-linux-x86_64
+            bin: bin/ctx
+          - package: linux-arm64
+            artifact: ctx-linux-aarch64
+            bin: bin/ctx
+          - package: darwin-x64
+            artifact: ctx-macos-x86_64
+            bin: bin/ctx
+          - package: darwin-arm64
+            artifact: ctx-macos-aarch64
+            bin: bin/ctx
+          - package: win32-x64
+            artifact: ctx-windows-x86_64.exe
+            bin: bin/ctx.exe
+          - package: win32-arm64
+            artifact: ctx-windows-aarch64.exe
+            bin: bin/ctx.exe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Download binary from GitHub Release
+        shell: bash
+        run: |
+          version="${{ needs.verify.outputs.version }}"
+          tag="v${version}"
+          mkdir -p "packages/npm/${{ matrix.package }}/bin"
+          url="https://github.com/halloffame12/CTX/releases/download/${tag}/${{ matrix.artifact }}"
+          curl -fsSL "$url" -o "packages/npm/${{ matrix.package }}/${{ matrix.bin }}"
+          chmod +x "packages/npm/${{ matrix.package }}/${{ matrix.bin }}"
+          test -s "packages/npm/${{ matrix.package }}/${{ matrix.bin }}"
+          echo "staged ${{ matrix.artifact }} from ${tag}"
+      - name: Set version
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const f='packages/npm/${{ matrix.package }}/package.json';const p=JSON.parse(fs.readFileSync(f,'utf8'));p.version='${{ needs.verify.outputs.version }}';fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+      - name: Publish platform package
+        run: npm publish ./packages/npm/${{ matrix.package }} --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-meta:
+    needs: stage-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Set version + optionalDependencies
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const f='packages/npm/cli/package.json';const p=JSON.parse(fs.readFileSync(f,'utf8'));p.version='${{ needs.verify.outputs.version }}';for(const k of Object.keys(p.optionalDependencies)){p.optionalDependencies[k]='${{ needs.verify.outputs.version }}'}fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+          grep '"version"' packages/npm/cli/package.json
+      - name: Publish @ctx/cli
+        run: npm publish ./packages/npm/cli --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  post-install-verification:
+    needs: publish-meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npx @ctx/cli --version
+        run: npx -y @ctx/cli@${{ needs.verify.outputs.version }} --version
