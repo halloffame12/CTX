@@ -1,0 +1,12 @@
+pub mod cli;
+pub mod commands;
+pub mod config;
+pub mod context;
+pub mod errors;
+pub mod git;
+pub mod graph;
+pub mod indexing;
+pub mod lang;
+pub mod mcp;
+pub mod output;
+pub mod parser;
