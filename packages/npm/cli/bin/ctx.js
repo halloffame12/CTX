@@ -16,7 +16,9 @@ const { spawn } = require("node:child_process");
 function locateBinary() {
   const platform = process.platform; // linux | darwin | win32
   const arch = process.arch; // x64 | arm64
-  const pkg = `ctxai-${platform}-${arch}`;
+  // npm's spam detector rejects the name "ctxai-win32-arm64", so the
+  // win32/arm64 binary ships as "ctxai-windows-arm64" instead.
+  const pkg = platform === "win32" && arch === "arm64" ? "ctxai-windows-arm64" : `ctxai-${platform}-${arch}`;
 
   // Platform packages export "./binary" -> the native binary path.
   try {
