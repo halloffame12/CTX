@@ -28,6 +28,7 @@ pub fn cmd_init(
         // ensure .ctx dir + config
         std::fs::create_dir_all(root.join(".ctx"))?;
         write_default_config(&root);
+        write_gitignore(&root);
         let report = run_index(&root, &config)?;
         emit_json(&serde_json::to_value(report)?);
         return Ok(());
@@ -38,6 +39,7 @@ pub fn cmd_init(
     t.p("");
     std::fs::create_dir_all(root.join(".ctx"))?;
     write_default_config(&root);
+    write_gitignore(&root);
 
     let probe = run_index(&root, &config)?;
 
@@ -114,6 +116,23 @@ pub fn cmd_init(
     t.p(&format!("Time: {}ms", probe.elapsed_ms));
     let _ = start;
     Ok(())
+}
+
+fn write_gitignore(root: &std::path::Path) {
+    let path = root.join(".gitignore");
+    let existing = std::fs::read_to_string(&path).unwrap_or_default();
+    if existing
+        .lines()
+        .any(|l| l.trim() == ".ctx/" || l.trim() == ".ctx")
+    {
+        return;
+    }
+    let mut content = existing;
+    if !content.is_empty() && !content.ends_with('\n') {
+        content.push('\n');
+    }
+    content.push_str(".ctx/\n");
+    let _ = std::fs::write(&path, content);
 }
 
 fn write_default_config(root: &std::path::Path) {

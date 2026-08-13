@@ -24,6 +24,7 @@ path = "src/lib.rs"
 anyhow = "1.0.104"
 clap = { version = "4.6.6", features = ["derive", "wrap_help"] }
 ignore = "0.4.33"
+libc = "0.2"
 notify = "8.2.0"
 rayon = "1.12.0"
 rusqlite = { version = "0.40.2", features = ["bundled"] }

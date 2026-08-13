@@ -86,10 +86,10 @@ fn file_candidates(spec: &str) -> Vec<String> {
 fn relpath_by_join(root: &Path, base: &Path, cand: &str) -> Option<String> {
     let joined = base.join(cand);
     match joined.strip_prefix(root) {
-        Ok(rel) => Some(normalize_rel(&rel.to_string_lossy())),
+        Ok(rel) => Some(collapse_dots(&normalize_rel(&rel.to_string_lossy()))),
         Err(_) => {
             let text = normalize_rel(&joined.to_string_lossy());
-            Some(text)
+            Some(collapse_dots(&text))
         }
     }
 }

@@ -72,14 +72,32 @@ pub fn changed_files(repo: &GitRepo, since: Option<&str>) -> CtxResult<Vec<Chang
                 let prefix = &line[..2];
                 let path = line[3..].trim_end().to_string();
                 let path = path.split(" -> ").last().unwrap_or(&path).to_string();
-                let code = if prefix.starts_with('?') {
+                // porcelain v1 is a two-column code: X=index, Y=worktree.
+                let (x, y) = (
+                    prefix.chars().next().unwrap_or(' '),
+                    prefix.chars().nth(1).unwrap_or(' '),
+                );
+                let code = if x == '?' && y == '?' {
                     "A"
                 } else {
-                    match prefix.chars().next() {
-                        Some('A') => "A",
-                        Some('D') => "D",
-                        Some('R') | Some('C') => "R",
-                        _ => "M",
+                    let tracked =
+                        |c: char| c == 'A' || c == 'D' || c == 'R' || c == 'C' || c == 'M';
+                    if tracked(x) {
+                        match x {
+                            'A' => "A",
+                            'D' => "D",
+                            'R' | 'C' => "R",
+                            _ => "M",
+                        }
+                    } else if tracked(y) {
+                        match y {
+                            'A' => "A",
+                            'D' => "D",
+                            'R' | 'C' => "R",
+                            _ => "M",
+                        }
+                    } else {
+                        "M"
                     }
                 };
                 out.insert(path, code.to_string());

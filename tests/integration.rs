@@ -182,6 +182,54 @@ fn init_indexes_symbols_and_dependencies() {
 }
 
 #[test]
+fn relative_imports_with_dot_dot_resolve_to_clean_paths() {
+    let root = temp_root("reldots");
+    write(
+        &root,
+        "src/api/users.ts",
+        "import { authenticate } from '../auth/auth';\nimport { UserService } from '../users/user';\nexport function handleLogin() { return authenticate('a','b'); }\n",
+    );
+    write(
+        &root,
+        "src/auth/auth.ts",
+        "import { Session } from './session';\nexport function authenticate(e: string, p: string) { return 1; }\n",
+    );
+    write(
+        &root,
+        "src/auth/session.ts",
+        "export interface Session { token: string }\n",
+    );
+    write(&root, "src/users/user.ts", "export class UserService {}\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let users = db.file_by_path("src/api/users.ts").unwrap().unwrap();
+    let out = db.internal_dependencies_of(users.id).unwrap();
+    assert!(
+        out.iter().any(|(p, _)| p == "src/auth/auth.ts"),
+        "src/api/users.ts -> src/auth/auth.ts: {out:?}"
+    );
+    assert!(
+        out.iter().any(|(p, _)| p == "src/users/user.ts"),
+        "src/api/users.ts -> src/users/user.ts: {out:?}"
+    );
+
+    let auth = db.file_by_path("src/auth/auth.ts").unwrap().unwrap();
+    let auth_out = db.internal_dependencies_of(auth.id).unwrap();
+    assert!(
+        auth_out.iter().any(|(p, _)| p == "src/auth/session.ts"),
+        "src/auth/auth.ts -> src/auth/session.ts: {auth_out:?}"
+    );
+
+    let incoming = db.dependents_of(auth.id).unwrap();
+    assert!(
+        incoming.iter().any(|(p, _)| p == "src/api/users.ts"),
+        "dependents of auth include api/users: {incoming:?}"
+    );
+}
+
+#[test]
 fn search_and_symbol_details() {
     let root = fixture();
     let config = Config::default();
@@ -551,4 +599,76 @@ fn duplicate_symbols_and_imports_are_preserved() {
         2,
         "duplicate import kept: {outgoing:?}"
     );
+}
+
+#[test]
+fn changed_reports_deleted_files_as_deleted() {
+    let root = temp_root("changed");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    write(
+        &root,
+        "src/b.ts",
+        "import { a } from './a';\nexport function b() { return a(); }\n",
+    );
+    write(&root, "src/c.ts", "export function c() { return 3; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "initial"]).unwrap();
+
+    std::fs::remove_file(root.join("src/c.ts")).unwrap();
+    std::fs::write(root.join("src/b.ts"), "export function b() { return 2; }\n").unwrap();
+    write(&root, "src/new.ts", "export function n() { return 99; }\n");
+
+    let files = ctx::git::changed::changed_files(&git, None).unwrap();
+    let status = |p: &str| {
+        files
+            .iter()
+            .find(|f| f.path == p)
+            .map(|f| f.status.as_str())
+    };
+    assert_eq!(status("src/c.ts"), Some("D"));
+    assert_eq!(status("src/b.ts"), Some("M"));
+    assert_eq!(status("src/new.ts"), Some("A"));
+}
+
+#[test]
+fn init_writes_gitignore_for_ctx_dir() {
+    let root = temp_root("gitignore");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "initial"]).unwrap();
+
+    ctx::commands::init::cmd_init(
+        &root,
+        false,
+        None,
+        &ctx::output::Term::new(false, true, true),
+    )
+    .unwrap();
+
+    let gi = std::fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
+    assert!(
+        gi.lines().any(|l| l.trim() == ".ctx/"),
+        "gitignore has .ctx/: {gi:?}"
+    );
+
+    // idempotent: running again does not duplicate
+    ctx::commands::init::cmd_init(
+        &root,
+        false,
+        None,
+        &ctx::output::Term::new(false, true, true),
+    )
+    .unwrap();
+    let gi2 = std::fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
+    assert_eq!(gi2.matches(".ctx/").count(), 1, "no duplicate: {gi2:?}");
 }
