@@ -77,7 +77,10 @@ pub fn discover_root(cwd: &Path) -> CtxResult<PathBuf> {
 /// `../../etc/passwd`) is rejected with [`CtxError::PathOutsideRoot`] and is
 /// never turned into a `root.join(...)` path.
 pub fn normalize_rel_path(root: &Path, arg: &str) -> CtxResult<String> {
-    let p = Path::new(arg);
+    // Treat backslashes as path separators on every platform so that
+    // Windows-style traversal (..\..\etc\passwd) is rejected consistently.
+    let norm_arg = arg.replace('\\', "/");
+    let p = Path::new(&norm_arg);
     let candidates: Vec<PathBuf> = if p.is_absolute() {
         vec![p.to_path_buf()]
     } else {
