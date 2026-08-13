@@ -1,5 +1,5 @@
 {
-  "name": "@ctx/cli-darwin-arm64",
+  "name": "@halloffame12/cli-darwin-arm64",
   "version": "0.1.0",
   "description": "ctx native binary for macOS ARM64",
   "os": ["darwin"],

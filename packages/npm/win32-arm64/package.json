@@ -1,5 +1,5 @@
 {
-  "name": "@ctx/cli-win32-arm64",
+  "name": "@halloffame12/cli-win32-arm64",
   "version": "0.1.0",
   "description": "ctx native binary for Windows ARM64",
   "os": ["win32"],

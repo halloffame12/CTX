@@ -1,5 +1,5 @@
 {
-  "name": "@ctx/cli-darwin-x64",
+  "name": "@halloffame12/cli-darwin-x64",
   "version": "0.1.0",
   "description": "ctx native binary for macOS x64",
   "os": ["darwin"],

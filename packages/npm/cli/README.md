@@ -1,17 +1,17 @@
-# @ctx/cli — ctx
+# @halloffame12/cli — ctx
 
 The npm distribution of **ctx**, a codebase intelligence and context engine
 for AI coding agents. This package is a thin launcher for the compiled Rust
 binary, which is shipped in platform-specific optional dependencies:
 
 ```
-@ctx/cli                (launcher: bin/ctx.js)
-  ├── @ctx/cli-linux-x64
-  ├── @ctx/cli-linux-arm64
-  ├── @ctx/cli-darwin-x64
-  ├── @ctx/cli-darwin-arm64
-  ├── @ctx/cli-win32-x64
-  └── @ctx/cli-win32-arm64
+@halloffame12/cli                (launcher: bin/ctx.js)
+  ├── @halloffame12/cli-linux-x64
+  ├── @halloffame12/cli-linux-arm64
+  ├── @halloffame12/cli-darwin-x64
+  ├── @halloffame12/cli-darwin-arm64
+  ├── @halloffame12/cli-win32-x64
+  └── @halloffame12/cli-win32-arm64
 ```
 
 The binary is installed during `npm install`; nothing is downloaded at
@@ -20,15 +20,15 @@ runtime.
 ## Install
 
 ```bash
-npm install -g @ctx/cli
+npm install -g @halloffame12/cli
 ctx --version
 ```
 
 ## Usage without install
 
 ```bash
-npx @ctx/cli --version
-npx @ctx/cli context "add authentication"
+npx @halloffame12/cli --version
+npx @halloffame12/cli context "add authentication"
 ```
 
 ## Using with an AI coding agent (MCP)
