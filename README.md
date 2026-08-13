@@ -257,6 +257,7 @@ stderr.
 ```bash
 ctx mcp                      # speaks MCP over stdio
 ctx -R /path/to/project mcp  # or target a project root explicitly
+npx ctxai-cli mcp            # no install required
 ```
 
 The server implements JSON-RPC 2.0 over line-delimited stdio:
@@ -288,8 +289,8 @@ Add `ctx` as an MCP server (see opencode's MCP configuration docs):
 {
   "mcpServers": {
     "ctx": {
-      "command": "ctx",
-      "args": ["mcp", "-R", "/absolute/path/to/project"]
+      "command": "npx",
+      "args": ["-y", "ctxai-cli", "mcp", "-R", "/absolute/path/to/project"]
     }
   }
 }
@@ -301,11 +302,36 @@ Add `ctx` as an MCP server (see opencode's MCP configuration docs):
 {
   "mcpServers": {
     "ctx": {
-      "command": "ctx",
-      "args": ["mcp", "-R", "/absolute/path/to/project"]
+      "command": "npx",
+      "args": ["-y", "ctxai-cli", "mcp", "-R", "/absolute/path/to/project"]
     }
   }
 }
+```
+
+### Cursor
+
+Settings → MCP → Add → type `command`, then:
+
+```json
+{
+  "command": "npx",
+  "args": ["-y", "ctxai-cli", "mcp", "-R", "/absolute/path/to/project"]
+}
+```
+
+### VS Code (Cline / Roo / Continue)
+
+Add an MCP server of type `stdio`:
+
+```
+command: npx
+args: -y ctxai-cli mcp -R /absolute/path/to/project
+```
+
+> `npx` form requires no global install. If `ctx` is already on your PATH,
+> replace `"command": "npx", "args": ["-y", "ctxai-cli", ...]` with
+> `"command": "ctx", "args": ["mcp", ...]`.
 ```
 
 ## Supported languages

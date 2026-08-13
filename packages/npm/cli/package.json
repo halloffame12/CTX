@@ -27,7 +27,7 @@
     "ctxai-darwin-x64": "0.1.0",
     "ctxai-darwin-arm64": "0.1.0",
 "ctxai-win32-x64": "0.1.0",
-      "ctxai-windows-arm64": "0.1.0"
+    "ctxai-windows-arm64": "0.1.0"
   },
   "keywords": [
     "ctx",

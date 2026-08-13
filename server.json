@@ -1,0 +1,57 @@
+{
+  "name": "ctxai",
+  "version": "0.1.0",
+  "description": "Codebase intelligence and context engine for AI coding agents: search, symbol lookup, impact analysis, and context building via MCP.",
+  "command": "npx",
+  "args": ["-y", "ctxai-cli", "mcp"],
+  "env": {},
+  "transport": "stdio",
+  "packages": [
+    {
+      "registry_name": "npm",
+      "name": "ctxai-cli"
+    }
+  ],
+  "tools": [
+    {
+      "name": "ctx_project",
+      "description": "Return the project overview: root, git, and counts of indexed files, symbols and dependencies."
+    },
+    {
+      "name": "ctx_search",
+      "description": "Search the code graph for symbols or files by name, with optional kind and files filters."
+    },
+    {
+      "name": "ctx_skeleton",
+      "description": "Return a body-less structural skeleton of a source file, preserving signatures, types and exports."
+    },
+    {
+      "name": "ctx_symbol",
+      "description": "Details about a symbol: definition, kind, methods, references and dependencies."
+    },
+    {
+      "name": "ctx_dependencies",
+      "description": "List the files and modules a given file imports."
+    },
+    {
+      "name": "ctx_dependents",
+      "description": "List files that import a given file (reverse dependencies)."
+    },
+    {
+      "name": "ctx_impact",
+      "description": "Analyze files and symbols potentially affected by changing a symbol or file."
+    },
+    {
+      "name": "ctx_context",
+      "description": "Build a compact, relevance-ranked context package for a coding task."
+    },
+    {
+      "name": "ctx_changed",
+      "description": "List files and symbols changed since a git reference."
+    },
+    {
+      "name": "ctx_diff",
+      "description": "Semantic diff: symbols added, modified or removed between two refs."
+    }
+  ]
+}
