@@ -55,8 +55,8 @@ whichever ecosystem you already use:
 | **macOS / Linux** (Homebrew) | `brew tap halloffame12/CTX && brew install ctx` |
 | **Windows** (Winget) | `winget install halloffame12.CTX` |
 | **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-bucket && scoop install ctx` |
-| **Node.js** (npm) | `npm install -g @halloffame12/cli` |
-| **Run without installing** | `npx @halloffame12/cli --version` |
+| **Node.js** (npm) | `npm install -g ctxai` |
+| **Run without installing** | `npx ctxai --version` |
 | **Rust** (cargo) | `cargo install ctx-cli` |
 | **Direct** | `curl -fsSL https://ctx.dev/install.sh \| sh` (Unix) or `irm https://ctx.dev/install.ps1 \| iex` (Windows) — or grab a binary from [GitHub Releases](https://github.com/halloffame12/CTX/releases) |
 
@@ -379,7 +379,7 @@ cargo fmt --check
 GitHub Actions CI runs fmt, clippy (`-D warnings`, all targets/features), tests
 and release builds on Linux / macOS / Windows. The release workflow publishes
 prebuilt binaries (6 targets) with a `checksums.txt` for each tag, and the
-npm workflow publishes the `@halloffame12/cli` meta package + 6 platform packages with
+npm workflow publishes the `ctxai` meta package + 6 platform packages with
 provenance. `package-validation.yml` keeps all packaging in sync with
 `Cargo.toml`. See [RELEASE.md](RELEASE.md) for the full release checklist.
 

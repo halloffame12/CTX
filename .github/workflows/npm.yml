@@ -101,7 +101,7 @@ jobs:
         run: |
           node -e "const fs=require('fs');const f='packages/npm/cli/package.json';const p=JSON.parse(fs.readFileSync(f,'utf8'));p.version='${{ needs.verify.outputs.version }}';for(const k of Object.keys(p.optionalDependencies)){p.optionalDependencies[k]='${{ needs.verify.outputs.version }}'}fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
           grep '"version"' packages/npm/cli/package.json
-      - name: Publish @halloffame12/cli
+      - name: Publish ctxai
         run: npm publish ./packages/npm/cli --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -113,5 +113,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: npx @halloffame12/cli --version
-        run: npx -y @halloffame12/cli@${{ needs.verify.outputs.version }} --version
+      - name: npx ctxai --version
+        run: npx -y ctxai@${{ needs.verify.outputs.version }} --version

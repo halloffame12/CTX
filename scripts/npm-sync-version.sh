@@ -8,7 +8,7 @@ VERSION="$(grep '^version' "$ROOT/Cargo.toml" | head -1 | sed -E 's/version *= *
 
 pkg() { echo "$1"; } # placeholder for clarity
 
-# meta @halloffame12/cli
+# meta ctxai
 META="$ROOT/packages/npm/cli/package.json"
 node - "$META" "$VERSION" <<'EOF'
 const fs = require("fs");

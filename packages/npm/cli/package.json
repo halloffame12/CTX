@@ -1,20 +1,33 @@
 {
-  "name": "@halloffame12/cli",
+  "name": "ctxai",
   "version": "0.1.0",
   "description": "ctx — codebase intelligence and context engine for AI coding agents (native Rust binary launcher)",
   "license": "MIT",
-  "bin": { "ctx": "bin/ctx.js" },
-  "files": ["bin", "README.md"],
-  "repository": { "type": "git", "url": "https://github.com/halloffame12/CTX.git" },
-  "funding": { "type": "github", "url": "https://github.com/sponsors/halloffame12" },
-  "engines": { "node": ">=16" },
+  "bin": {
+    "ctx": "bin/ctx.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/halloffame12/CTX.git"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/halloffame12"
+  },
+  "engines": {
+    "node": ">=16"
+  },
   "optionalDependencies": {
-    "@halloffame12/cli-linux-x64": "0.1.0",
-    "@halloffame12/cli-linux-arm64": "0.1.0",
-    "@halloffame12/cli-darwin-x64": "0.1.0",
-    "@halloffame12/cli-darwin-arm64": "0.1.0",
-    "@halloffame12/cli-win32-x64": "0.1.0",
-    "@halloffame12/cli-win32-arm64": "0.1.0"
+    "ctxai-linux-x64": "0.1.0",
+    "ctxai-linux-arm64": "0.1.0",
+    "ctxai-darwin-x64": "0.1.0",
+    "ctxai-darwin-arm64": "0.1.0",
+    "ctxai-win32-x64": "0.1.0",
+    "ctxai-win32-arm64": "0.1.0"
   },
   "keywords": [
     "ctx",

@@ -2,10 +2,10 @@
 "use strict";
 
 /**
- * ctx launcher — @halloffame12/cli
+ * ctx launcher — ctxai
  *
  * The real `ctx` is a native Rust binary shipped in an optional platform
- * package (@halloffame12/cli-<platform>-<arch>). npm installs only the matching one.
+ * package (ctxai-<platform>-<arch>). npm installs only the matching one.
  * This file locates that binary and executes it with the same argv.
  *
  * No network access, no arbitrary shell execution, no eval.
@@ -16,7 +16,7 @@ const { spawn } = require("node:child_process");
 function locateBinary() {
   const platform = process.platform; // linux | darwin | win32
   const arch = process.arch; // x64 | arm64
-  const pkg = `@halloffame12/cli-${platform}-${arch}`;
+  const pkg = `ctxai-${platform}-${arch}`;
 
   // Platform packages export "./binary" -> the native binary path.
   try {
@@ -26,7 +26,7 @@ function locateBinary() {
     const err = new Error(
       `ctx: no binary found for ${platform}/${arch}. ` +
         `Supported platforms: linux, darwin, win32 × x64, arm64. ` +
-        `Reinstall with "npm install -g @halloffame12/cli" so the matching platform package installs.`
+        `Reinstall with "npm install -g ctxai" so the matching platform package installs.`
     );
     throw err;
   }
