@@ -347,6 +347,7 @@ fn _colors() -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
     use clap::Parser;
 
     #[test]

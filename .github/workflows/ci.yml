@@ -68,5 +68,10 @@ jobs:
         run: |
           bin="target/${{ matrix.target }}/release/ctx"
           if [[ "${{ matrix.target }}" == *windows* ]]; then bin="$bin.exe"; fi
-          "$bin" --version
+          if [[ "${{ matrix.target }}" == "aarch64-pc-windows-msvc" ]]; then
+            # ARM64 binaries cannot be executed on the x86_64 Windows runner.
+            test -f "$bin"
+          else
+            "$bin" --version
+          fi
         shell: bash
