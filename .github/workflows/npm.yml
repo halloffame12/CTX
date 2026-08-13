@@ -88,7 +88,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-meta:
-    needs: stage-and-publish
+    needs: [stage-and-publish, verify]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   post-install-verification:
-    needs: publish-meta
+    needs: [publish-meta, verify]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-node@v4
