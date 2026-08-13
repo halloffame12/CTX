@@ -362,8 +362,7 @@ mod tests {
             .version(env!("CARGO_PKG_VERSION"))
             .render_version();
         assert!(
-            v.trim_end()
-                .ends_with(&env!("CARGO_PKG_VERSION").to_string()),
+            v.trim_end().ends_with(env!("CARGO_PKG_VERSION")),
             "clap flag version {v} does not end with package version"
         );
     }

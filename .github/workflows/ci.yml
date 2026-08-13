@@ -65,5 +65,8 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
         shell: bash
       - name: Smoke test
-        run: ./target/${{ matrix.target }}/release/ctx --version
+        run: |
+          bin="target/${{ matrix.target }}/release/ctx"
+          if [[ "${{ matrix.target }}" == *windows* ]]; then bin="$bin.exe"; fi
+          "$bin" --version
         shell: bash
