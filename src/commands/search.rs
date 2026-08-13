@@ -45,7 +45,20 @@ pub fn cmd_search(
 
     let symbols = project.db.search(query, kind, limit)?;
     if t.is_json() {
-        let v: Vec<serde_json::Value> = symbols.iter().map(symbol_json).collect();
+        let v: Vec<serde_json::Value> = symbols
+            .iter()
+            .map(|s| {
+                symbol_json(
+                    s,
+                    project
+                        .db
+                        .file_by_id(s.file_id)
+                        .ok()
+                        .flatten()
+                        .map(|f| f.path),
+                )
+            })
+            .collect();
         emit_json(&serde_json::Value::Array(v));
         return Ok(());
     }
@@ -77,7 +90,7 @@ pub fn cmd_search(
     Ok(())
 }
 
-pub fn symbol_json(s: &SymbolRow) -> serde_json::Value {
+pub fn symbol_json(s: &SymbolRow, path: Option<String>) -> serde_json::Value {
     serde_json::json!({
         "id": s.id,
         "name": s.name,
@@ -88,5 +101,7 @@ pub fn symbol_json(s: &SymbolRow) -> serde_json::Value {
         "exported": s.exported,
         "start_line": s.start_line,
         "end_line": s.end_line,
+        "file": path,
+        "path": path,
     })
 }
