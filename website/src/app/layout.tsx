@@ -13,38 +13,50 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://halloffame12.github.io/CTX/"),
-  title: "ctx — Codebase intelligence & context engine for AI agents",
+  metadataBase: new URL("https://halloffame12.github.io/CTX"),
+  title: {
+    default: "ctx — codebase context for AI coding agents",
+    template: "%s · ctx",
+  },
   description:
-    "ctx indexes your codebase into a local, searchable graph and produces relevance-ranked context packages for AI coding agents. Fast, private, offline, deterministic.",
+    "ctx indexes a repository into a local, deterministic code graph and answers an agent's questions with real file paths: where a symbol lives, what would break if it changed, and which files a task actually needs.",
   keywords: [
-    "ctx",
-    "code intelligence",
-    "AI coding agents",
+    "mcp server",
+    "model context protocol",
+    "ai coding agents",
     "code graph",
-    "MCP",
-    "context engine",
+    "code intelligence",
     "code search",
-    "symbol search",
+    "impact analysis",
+    "developer tools",
   ],
+  authors: [{ name: "Sumit Chauhan", url: "https://github.com/halloffame12" }],
+  creator: "Sumit Chauhan",
+  publisher: "Sumit Chauhan",
   openGraph: {
-    title: "ctx — Codebase intelligence & context engine for AI agents",
+    title: "ctx — codebase context for AI coding agents",
     description:
-      "Local, fast, private code graph + ranked context packages for AI coding agents. MCP over stdio.",
+      "A local, deterministic code graph for AI agents: symbol search, impact analysis, and ranked context over stdio.",
+    url: "https://halloffame12.github.io/CTX",
+    siteName: "ctx",
     type: "website",
-    url: "https://halloffame12.github.io/CTX/",
+  },
+  twitter: {
+    card: "summary",
+    title: "ctx — codebase context for AI coding agents",
+    description:
+      "A local, deterministic code graph for AI agents: symbol search, impact analysis, and ranked context over stdio.",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-ink-950 text-foreground">
-        {children}
-      </body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

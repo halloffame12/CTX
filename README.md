@@ -2,6 +2,8 @@
 
 **Codebase intelligence and context engine for AI coding agents.**
 
+Documentation: **[https://halloffame12.github.io/CTX](https://halloffame12.github.io/CTX)** · [docs overview](https://halloffame12.github.io/CTX/docs)
+
 `ctx` builds a queryable code graph for a project — files, symbols, signatures
 and imports — and turns it into compact, relevance-ranked context for AI tools
 and for humans. It speaks **MCP** over stdio, so coding agents (Claude, Cursor,

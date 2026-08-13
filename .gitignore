@@ -5,3 +5,6 @@
 *.db-wal
 /scripts/qa-*.sh
 /scripts/qa-*.py
+/website/out
+/website/.next
+/website/node_modules
