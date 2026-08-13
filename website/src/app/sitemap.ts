@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export const dynamic = "force-static";
 
-const BASE = "https://halloffame12.github.io/CTX";
+const BASE = "https://ctx.sumitchauhan.me";
 
 const STATIC_PAGES = [
   { path: "", priority: 1, changeFrequency: "monthly" as const },

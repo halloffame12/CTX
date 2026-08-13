@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: "ctx — codebase context for AI coding agents",
     description:
       "A local code graph for AI agents: find where a symbol lives, see what would break if you change it, and get the files a task actually needs.",
-    url: "https://halloffame12.github.io/CTX",
+    url: "https://ctx.sumitchauhan.me",
   },
 };
 
@@ -25,7 +25,7 @@ const jsonLd = {
   operatingSystem: "macOS, Linux, Windows",
   description:
     "A local, deterministic code graph for AI coding agents: symbol search, impact analysis, and ranked context packages over stdio (MCP).",
-  url: "https://halloffame12.github.io/CTX",
+  url: "https://ctx.sumitchauhan.me",
   installUrl: "https://www.npmjs.com/package/ctxai-cli",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   license: "https://github.com/halloffame12/CTX/blob/main/LICENSE",

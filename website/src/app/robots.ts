@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://halloffame12.github.io/CTX/sitemap.xml",
+    sitemap: "https://ctx.sumitchauhan.me/sitemap.xml",
   };
 }

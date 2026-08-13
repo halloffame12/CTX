@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://halloffame12.github.io/CTX"),
+  metadataBase: new URL("https://ctx.sumitchauhan.me"),
   title: {
     default: "ctx — codebase context for AI coding agents",
     template: "%s · ctx",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "ctx — codebase context for AI coding agents",
     description:
       "A local, deterministic code graph for AI agents: symbol search, impact analysis, and ranked context over stdio.",
-    url: "https://halloffame12.github.io/CTX",
+    url: "https://ctx.sumitchauhan.me",
     siteName: "ctx",
     type: "website",
   },
