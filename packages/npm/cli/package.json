@@ -1,5 +1,5 @@
 {
-  "name": "ctxai",
+  "name": "ctxai-cli",
   "version": "0.1.0",
   "description": "ctx — codebase intelligence and context engine for AI coding agents (native Rust binary launcher)",
   "license": "MIT",

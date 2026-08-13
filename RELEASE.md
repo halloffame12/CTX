@@ -39,8 +39,8 @@ multiple files.**
 7. **Publish npm** (triggered automatically on `release` → `npm.yml`, or run
    manually via workflow_dispatch with the version):
    - publishes `ctxai-linux-x64`, `-arm64`, `-darwin-x64`, `-arm64`,
-     `-win32-x64`, `-arm64`, then `ctxai` (all with provenance).
-   - post-install job runs `npx ctxai@<v> --version`.
+     `-win32-x64`, `-arm64`, then `ctxai-cli` (all with provenance).
+   - post-install job runs `npx ctxai-cli@<v> --version`.
 8. **Update Homebrew formula:**
    ```bash
    bash scripts/update-homebrew.sh     # requires dist/checksums.txt
@@ -58,8 +58,8 @@ multiple files.**
 10. **Verify installations** (each needs its ecosystem installed):
     ```bash
     cargo install ctx-cli && ctx --version
-    npm install -g ctxai && ctx --version
-    npx ctxai --version
+    npm install -g ctxai-cli && ctx --version
+    npx ctxai-cli --version
     brew install ctx && ctx --version          # after tap update
     winget install ctx && ctx --version        # after winget-pkgs merge
     scoop install ctx && ctx --version         # after bucket update
