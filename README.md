@@ -57,7 +57,7 @@ whichever ecosystem you already use:
 | **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-bucket && scoop install ctx` |
 | **Node.js** (npm) | `npm install -g ctxai-cli` |
 | **Run without installing** | `npx ctxai-cli --version` |
-| **Rust** (cargo) | `cargo install ctx-cli` |
+| **Rust** (cargo) | `cargo install ctxai-cli` |
 | **Direct** | `curl -fsSL https://ctx.dev/install.sh \| sh` (Unix) or `irm https://ctx.dev/install.ps1 \| iex` (Windows) — or grab a binary from [GitHub Releases](https://github.com/halloffame12/CTX/releases) |
 
 > The installer scripts currently live in the repository (`scripts/install.sh`,

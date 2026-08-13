@@ -164,7 +164,7 @@ jobs:
             npm install -g ctxai
 
             # Rust
-            cargo install ctx-cli
+            cargo install ctxai-cli
 
             # Direct download (below)
             # macOS / Linux

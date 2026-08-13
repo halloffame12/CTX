@@ -26,8 +26,8 @@ jobs:
           cargo metadata --format-version 1 --no-deps > /tmp/meta.json
           node -e '
             const m = require("/tmp/meta.json");
-            const p = m.packages.find(p => p.name === "ctx-cli");
-            if (!p) throw new Error("package ctx-cli not found in cargo metadata");
+            const p = m.packages.find(p => p.name === "ctxai-cli");
+            if (!p) throw new Error("package ctxai-cli not found in cargo metadata");
             console.log("name:", p.name, "| version:", p.version, "| targets:", p.targets.map(t => t.name).join(", "));
             if (p.version !== "0.1.0" && p.version === "") throw new Error("version missing");
             if (!p.targets.some(t => t.name === "ctx" && t.kind.includes("bin"))) throw new Error("bin target ctx missing");

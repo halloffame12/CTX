@@ -57,7 +57,7 @@ multiple files.**
    - Publish `packaging/scoop/bucket/` to your scoop-bucket repo.
 10. **Verify installations** (each needs its ecosystem installed):
     ```bash
-    cargo install ctx-cli && ctx --version
+    cargo install ctxai-cli && ctx --version
     npm install -g ctxai-cli && ctx --version
     npx ctxai-cli --version
     brew install ctx && ctx --version          # after tap update

@@ -211,7 +211,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctx-cli"
+name = "ctxai-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
