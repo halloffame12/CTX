@@ -155,6 +155,82 @@ fn prefix_match(a: &str, b: &str) -> bool {
     common >= 4
 }
 
+/// Synonym groups: alternate task vocabularies for the same concept. A task
+/// keyword that matches any member of a group (by equality or shared stem)
+/// activates the whole group, so "login" also matches code that says
+/// `authenticate` and "avatar" matches code that says `picture`.
+const SYNONYM_GROUPS: &[&[&str]] = &[
+    &[
+        "login",
+        "signin",
+        "sign_in",
+        "sign-in",
+        "authenticate",
+        "authentication",
+        "auth",
+    ],
+    &["signup", "sign_up", "sign-up", "register", "registration"],
+    &["password", "passwd", "passcode", "credential", "secret"],
+    &["email", "mail", "mailbox"],
+    &["avatar", "picture", "photo", "image", "thumbnail"],
+    &["profile", "account", "userprofile"],
+    &["rate", "ratelimit", "rate_limiting", "throttle", "limit"],
+    &["tier", "plan", "subscription", "membership", "level"],
+    &["billing", "invoice", "charge", "checkout"],
+    &["payment", "payments", "checkout", "charge"],
+    &["webhook", "callback", "hook", "eventlistener"],
+    &["audit", "log", "history", "trail", "activity"],
+    &["preferences", "prefs", "settings", "options", "config"],
+    &["notification", "alert", "notify", "notifications"],
+    &["admin", "administrator", "staff", "permission", "role"],
+    &["export", "download", "dump", "serialize", "extract"],
+    &["import", "load", "ingest", "parse"],
+    &["reset", "regenerate", "reissue", "recover", "revoke"],
+    &["verify", "verification", "confirm", "validate", "check"],
+    &["metrics", "stats", "analytics", "counts", "report"],
+    &["dashboard", "overview", "report", "home"],
+    &["upload", "store", "put", "save", "persist"],
+    &["session", "token", "jwt", "authtoken"],
+    &["user", "account", "member", "person"],
+    &["data", "record", "entity", "info", "information"],
+    &["config", "configuration", "settings", "options"],
+    &["refund", "reversal", "chargeback"],
+    &["search", "query", "find", "lookup"],
+    &["changed", "modified", "updated", "diff"],
+    &["delete", "remove", "drop", "destroy", "purge"],
+    &["error", "exception", "failure", "fault"],
+    &["test", "tests", "spec", "unittest"],
+];
+
+/// Expand task keywords with their synonym groups so matching tolerates
+/// different task vocabulary ("login" → also matches `authenticate`). The
+/// original keywords are always kept; expansions are deduplicated and capped.
+pub fn expand_keywords(keywords: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = keywords.to_vec();
+    for k in keywords {
+        let k_lower = k.to_lowercase();
+        for group in SYNONYM_GROUPS {
+            let active = group.iter().any(|member| {
+                let m = member.to_lowercase();
+                m == k_lower
+                    || prefix_match(&m, &k_lower)
+                    || k_lower.contains(&m)
+                    || m.contains(&k_lower)
+            });
+            if active {
+                for member in group.iter() {
+                    let m = member.to_string();
+                    if !out.contains(&m) {
+                        out.push(m);
+                    }
+                }
+            }
+        }
+    }
+    out.truncate(40);
+    out
+}
+
 /// Human-readable, explainable reasons a symbol matched the task keywords.
 /// Mirrors [`score_symbol`] so the listed reasons always justify the score.
 pub fn symbol_reasons(name: &str, signature: &str, path: &str, keywords: &[String]) -> Vec<String> {
@@ -320,5 +396,39 @@ mod tests {
     fn short_keywords_do_not_prefix_match() {
         assert!(!prefix_match("ab", "abcdef"));
         assert!(!prefix_match("xyz", "xy"));
+    }
+
+    #[test]
+    fn synonym_expansion_covers_task_vocabulary() {
+        let expanded = expand_keywords(&["login".to_string(), "avatar".to_string()]);
+        assert!(
+            expanded.contains(&"authenticate".to_string()),
+            "{expanded:?}"
+        );
+        assert!(expanded.contains(&"picture".to_string()), "{expanded:?}");
+        assert!(expanded.contains(&"login".to_string()), "original kept");
+        assert!(expanded.len() <= 40);
+    }
+
+    #[test]
+    fn synonym_expansion_does_not_add_irrelevant_terms() {
+        let expanded = expand_keywords(&["rate".to_string()]);
+        assert!(expanded.contains(&"limit".to_string()), "{expanded:?}");
+        assert!(!expanded.contains(&"avatar".to_string()), "{expanded:?}");
+    }
+
+    #[test]
+    fn score_symbol_matches_via_synonym_expansion() {
+        let keywords = expand_keywords(&["login".to_string()]);
+        let score = score_symbol(
+            "authenticateWithPassword",
+            "",
+            "src/auth/auth.ts",
+            &keywords,
+        );
+        assert!(
+            score >= 2.0,
+            "login->authenticate should score, got {score}"
+        );
     }
 }

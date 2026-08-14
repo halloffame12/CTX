@@ -449,6 +449,68 @@ fn context_build_ranks_relevant_files() {
 }
 
 #[test]
+fn context_follows_dependencies_of_relevant_files() {
+    let root = temp_root("ctx_depfollow");
+    // service imports a client; task mentions the service's keyword only.
+    write(
+        &root,
+        "src/service.py",
+        "from src.client import Client\nclass Service:\n    def run(self):\n        return Client().go()\n",
+    );
+    write(
+        &root,
+        "src/client.py",
+        "class Client:\n    def go(self):\n        return 1\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg = ctx::context::build_context(&db, &root, "run the service", &config, false).unwrap();
+    let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        paths.contains(&"src/service.py"),
+        "service.py relevant: {paths:?}"
+    );
+    assert!(
+        paths.contains(&"src/client.py"),
+        "dependency-following should include client.py: {paths:?}"
+    );
+    assert!(
+        pkg.files.iter().any(
+            |f| f.path == "src/client.py" && f.reasons.iter().any(|r| r.contains("dependency"))
+        ),
+        "client.py should cite the dependency reason"
+    );
+}
+
+#[test]
+fn context_uses_synonym_vocabulary() {
+    let root = temp_root("ctx_syn");
+    write(
+        &root,
+        "src/auth.py",
+        "def authenticate_with_password(user, password):\n    return True\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    // "login" must find `authenticate_with_password` via synonym expansion.
+    let pkg = ctx::context::build_context(&db, &root, "login flow", &config, false).unwrap();
+    assert!(
+        pkg.relevant_symbols
+            .iter()
+            .any(|s| s.name.contains("authenticate")),
+        "login should surface authenticate symbols: {:?}",
+        pkg.relevant_symbols
+            .iter()
+            .map(|s| s.name.clone())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn incremental_reindex_is_idempotent() {
     let root = fixture();
     let config = Config::default();

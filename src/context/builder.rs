@@ -6,8 +6,8 @@ use std::path::Path;
 
 use crate::config::Config;
 use crate::context::ranking::{
-    file_reasons, framework_bonus, hub_bonus, path_keyword_bonus, score_symbol, symbol_reasons,
-    tokenize,
+    expand_keywords, file_reasons, framework_bonus, hub_bonus, path_keyword_bonus, score_symbol,
+    symbol_reasons, tokenize,
 };
 use crate::context::skeleton::{estimate_tokens, skeleton_for};
 use crate::errors::CtxResult;
@@ -91,7 +91,8 @@ pub fn build_context_with(
     max_tokens: Option<usize>,
     changed_paths: &[String],
 ) -> CtxResult<ContextPackage> {
-    let keywords = tokenize(task);
+    let display_keywords = tokenize(task);
+    let keywords = expand_keywords(&display_keywords);
     let data = db.context_load()?;
     let (files, symbols, dep_counts) = (data.files, data.symbols, data.dep_counts);
 
@@ -222,6 +223,56 @@ pub fn build_context_with(
         }
     }
 
+    // dependency following: files imported by strongly-relevant files often
+    // need to be edited too (e.g. adding a subscription tier touches billing.ts
+    // AND the stripe/payment clients it imports). Give those one-hop deps a
+    // small boost so they join the package.
+    let mut follow_ids: Vec<i64> = Vec::new();
+    for (fid, entry) in file_scores.iter() {
+        if entry.score >= 3.0 {
+            if let Ok(deps) = db.dependencies_of(*fid) {
+                for d in deps {
+                    if let Some(tid) = d.target_file_id {
+                        if !follow_ids.contains(&tid) {
+                            follow_ids.push(tid);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for tid in follow_ids {
+        if file_scores.contains_key(&tid) {
+            continue;
+        }
+        let Some(rec) = files.get(&tid) else {
+            continue;
+        };
+        let hub_count = dep_counts.get(&tid).copied();
+        let is_recent = recent_on_disk(rec);
+        let mut score = 0.75 + if is_recent { 2.0 } else { 0.0 };
+        if let Some(dc) = hub_count {
+            score += hub_bonus(dc);
+        }
+        let mut reasons = vec!["imported by a relevant file (dependency)".to_string()];
+        reasons.extend(file_reasons(
+            &rec.path,
+            &keywords,
+            is_recent,
+            framework_bonus(&rec.path) > 0.0,
+            hub_count,
+            false,
+        ));
+        file_scores.insert(
+            tid,
+            ScoredFile {
+                record: rec.clone(),
+                score,
+                reasons,
+            },
+        );
+    }
+
     // order deterministically: score desc, path asc
     let mut scored: Vec<ScoredFile> = file_scores.into_values().collect();
     scored.sort_by(|a, b| {
@@ -340,7 +391,7 @@ pub fn build_context_with(
 
     Ok(ContextPackage {
         task: task.to_string(),
-        keywords,
+        keywords: display_keywords,
         architecture,
         relevant_symbols,
         relevant_dependencies: relevant_deps,
@@ -386,6 +437,9 @@ fn read_file_skeleton(
 
 fn build_architecture(files: &[RelevantFile]) -> Vec<String> {
     let mut lines: Vec<String> = Vec::new();
+    if files.is_empty() {
+        return lines;
+    }
     let mut prefixes: Vec<String> = Vec::new();
     for f in files {
         let parts: Vec<&str> = f.path.split('/').collect();

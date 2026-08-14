@@ -63,6 +63,15 @@ All notable changes to `ctx` are documented here.
 - `ctx context` now prefix-matches keywords against symbol names, so task
   vocabulary inflections ("authentication" vs `authenticateWithPassword`)
   still surface the right files instead of returning nothing.
+- `ctx context` expands task keywords through synonym groups ("login" also
+  matches code that says `authenticate`, "avatar" also matches `picture`), so
+  task phrasing no longer has to match code vocabulary exactly.
+- `ctx context` follows one hop of a strongly-relevant file's imports and
+  includes those dependencies in the package ("add a subscription tier" now
+  surfaces billing.ts *and* the stripe/payment clients it uses), with an
+  explicit `imported by a relevant file (dependency)` reason.
+- `ctx context` no longer prints an empty "Relevant architecture" section when
+  nothing matched the task.
 - `resolve_target` no longer matches wrong-language files for symbol targets
   (language-aware candidate filtering).
 - `symbols`/`dependencies` counts in `ctx doctor` now come from live DB stats.
