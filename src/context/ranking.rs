@@ -133,6 +133,8 @@ pub fn score_symbol(name: &str, signature: &str, path: &str, keywords: &[String]
             score += 6.0;
         } else if name_lower.contains(k.as_str()) {
             score += 3.0;
+        } else if prefix_match(&name_lower, k.as_str()) {
+            score += 2.0;
         }
         if sig_lower.contains(k.as_str()) {
             score += 1.0;
@@ -142,6 +144,15 @@ pub fn score_symbol(name: &str, signature: &str, path: &str, keywords: &[String]
         }
     }
     score
+}
+
+/// Approximate-vocabulary match: "authentication" ~ "authenticate". True when
+/// the two strings share a common prefix of at least 4 characters — enough to
+/// be a meaningful stem. Only applied to the symbol name, never to keywords
+/// that are pure stop-ish noise.
+fn prefix_match(a: &str, b: &str) -> bool {
+    let common = a.chars().zip(b.chars()).take_while(|(x, y)| x == y).count();
+    common >= 4
 }
 
 /// Human-readable, explainable reasons a symbol matched the task keywords.
@@ -156,6 +167,8 @@ pub fn symbol_reasons(name: &str, signature: &str, path: &str, keywords: &[Strin
             reasons.push(format!("exact symbol match `{name}`"));
         } else if name_lower.contains(k.as_str()) {
             reasons.push(format!("symbol contains keyword `{k}`"));
+        } else if prefix_match(&name_lower, k.as_str()) {
+            reasons.push(format!("symbol matches `{k}` by prefix"));
         }
         if sig_lower.contains(k.as_str()) && !name_lower.contains(k.as_str()) {
             reasons.push(format!("signature mentions `{k}`"));
@@ -263,4 +276,49 @@ pub fn path_keyword_bonus(path: &str, keywords: &[String]) -> f64 {
         .iter()
         .filter(|k| lower.contains(k.as_str()))
         .count() as f64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn vocabulary_prefix_match_catches_inflections() {
+        assert!(prefix_match("authenticatewithpassword", "authentication"));
+        assert!(prefix_match("authentication", "authenticatewithpassword"));
+        assert!(prefix_match("configuration", "config"));
+        assert!(!prefix_match("cat", "catalog"));
+        assert!(!prefix_match("auth", "user"));
+    }
+
+    #[test]
+    fn score_symbol_prefix_matches_symbol_name() {
+        let keywords = vec!["authentication".to_string()];
+        let score = score_symbol(
+            "authenticateWithPassword",
+            "",
+            "src/auth/auth.ts",
+            &keywords,
+        );
+        assert!(
+            score >= 2.0,
+            "prefix match should award points, got {score}"
+        );
+        let reasons = symbol_reasons(
+            "authenticateWithPassword",
+            "",
+            "src/auth/auth.ts",
+            &keywords,
+        );
+        assert!(
+            reasons.iter().any(|r| r.contains("by prefix")),
+            "reasons should mention prefix match: {reasons:?}"
+        );
+    }
+
+    #[test]
+    fn short_keywords_do_not_prefix_match() {
+        assert!(!prefix_match("ab", "abcdef"));
+        assert!(!prefix_match("xyz", "xy"));
+    }
 }

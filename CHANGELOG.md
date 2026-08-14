@@ -60,6 +60,9 @@ All notable changes to `ctx` are documented here.
   checkout or clone. Recency is now measured against the actual on-disk mtime
   vs the last index build (i.e. files that would show as stale in
   `ctx doctor`), so only files edited since the last index get the bonus.
+- `ctx context` now prefix-matches keywords against symbol names, so task
+  vocabulary inflections ("authentication" vs `authenticateWithPassword`)
+  still surface the right files instead of returning nothing.
 - `resolve_target` no longer matches wrong-language files for symbol targets
   (language-aware candidate filtering).
 - `symbols`/`dependencies` counts in `ctx doctor` now come from live DB stats.
