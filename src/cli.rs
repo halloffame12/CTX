@@ -145,6 +145,9 @@ enum Command {
     /// Inspect the project and report the health of the ctx index
     Doctor,
 
+    /// Show index statistics (files, symbols, dependencies, db size)
+    Stats,
+
     /// Print version information
     Version,
 }
@@ -254,6 +257,10 @@ pub fn run() -> CtxResult<()> {
         }
         Command::Doctor => {
             commands::doctor::cmd_doctor(&cwd, cli.root.as_deref(), &t)?;
+        }
+        Command::Stats => {
+            let project = open(&cwd, cli.root.as_deref(), true)?;
+            commands::stats::cmd_stats(&project, &t)?;
         }
         Command::Version => {
             let v = concat!("ctx ", env!("CARGO_PKG_VERSION"));
@@ -401,6 +408,7 @@ mod tests {
             "watch",
             "mcp",
             "doctor",
+            "stats",
             "version",
         ] {
             assert!(

@@ -672,3 +672,45 @@ fn init_writes_gitignore_for_ctx_dir() {
     let gi2 = std::fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
     assert_eq!(gi2.matches(".ctx/").count(), 1, "no duplicate: {gi2:?}");
 }
+
+#[test]
+fn stats_reports_index_counts_and_db_size() {
+    let root = fixture();
+    let config = Config::default();
+    let report = run_index(&root, &config).unwrap();
+
+    let project = ctx::commands::Project::open(&root, Some(&root)).unwrap();
+    let (files, symbols, deps) = project.db.stats().unwrap();
+
+    let mut out = Vec::new();
+    {
+        use std::io::Write;
+        let mut w = out.by_ref();
+        ctx::commands::stats::write_stats(&mut w, &project, false).unwrap();
+        let _ = w;
+    }
+    let text = String::from_utf8(out).unwrap();
+
+    assert_eq!(files as usize, report.total_files - report.skipped, "files");
+    assert_eq!(symbols, report.symbols_indexed as i64, "symbols");
+    assert_eq!(deps, report.dependencies_indexed as i64, "deps");
+    assert!(
+        text.contains("files indexed") && text.contains("symbols indexed"),
+        "plain output lists files and symbols: {text}"
+    );
+    assert!(
+        text.contains("index.db"),
+        "plain output lists db size: {text}"
+    );
+
+    let mut out = Vec::new();
+    ctx::commands::stats::write_stats(&mut out, &project, true).unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&out).unwrap();
+    assert_eq!(json["files"], serde_json::json!(files));
+    assert_eq!(json["symbols"], serde_json::json!(symbols));
+    assert_eq!(json["dependencies"], serde_json::json!(deps));
+    assert!(
+        json["db_size"].as_u64().unwrap() > 0,
+        "db has bytes on disk"
+    );
+}

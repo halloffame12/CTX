@@ -11,6 +11,7 @@ pub mod init;
 pub mod mcp;
 pub mod search;
 pub mod skeleton;
+pub mod stats;
 pub mod symbol;
 pub mod watch;
 
