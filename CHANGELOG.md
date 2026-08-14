@@ -54,3 +54,13 @@ All notable changes to `ctx` are documented here.
   (language-aware candidate filtering).
 - `symbols`/`dependencies` counts in `ctx doctor` now come from live DB stats.
 - Watch-mode rename/delete hygiene and clean shutdown verified.
+- `ctx search --kind` now rejects invalid kinds (exit 2) and normalizes aliases
+  (`fn` → `function`, `const` → `constant`, `alias` → `type`) instead of
+  silently returning zero matches.
+- `ctx init --force` now rebuilds the entire index from scratch rather than
+  only resetting the default config.
+- `ctx watch --json` emits single-line JSON events (`changed`/`deleted`/`error`)
+  instead of ignoring the JSON flag.
+- Crates.io package size — `Cargo.toml` `include` restricts the crate to
+  source, tests and docs (948 files / 690KiB → 59 files / 80KiB compressed).
+- README Scoop URL now points to the real bucket (`halloffame12/scoop-ctx`).
