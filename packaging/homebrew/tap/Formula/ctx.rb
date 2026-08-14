@@ -13,20 +13,20 @@
 class Ctx < Formula
   desc "Codebase intelligence and context engine for AI coding agents"
   homepage "https://github.com/halloffame12/CTX"
-  version "0.1.0"
+  version "0.1.1"
 
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.0/ctx-macos-aarch64"
-    sha256 "d9e925dae8c9af689fe70f47201f094b3d439a7217e48a63b9eceedf49a7452a"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-macos-aarch64"
+    sha256 "63039ed5e9fb352a5dc4bd082101fb76089661aac2b6a789025febe7cbf1e665"
   elsif OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.0/ctx-macos-x86_64"
-    sha256 "9918d841649a14c431fb644b5a6a152e682129639ab1182356721c27bb21ea42"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-macos-x86_64"
+    sha256 "d33153bfc2dc5f6d42b46ced0154cb4567909f171c8931660b66b2a53901bbc5"
   elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.0/ctx-linux-aarch64"
-    sha256 "ab9322b26d0f81986331da68ae36a7d27f9aa237a4a383b6d15f98e1c5764415"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-linux-aarch64"
+    sha256 "07b247d3599c70b00cccb4786e7f2e5ed183c7f2ef87d4497cb83968d9e9c317"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.0/ctx-linux-x86_64"
-    sha256 "4e7a58ff084f4e1a5f2897c5e50444c755f859f4be1cb815cff14069077b8449"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-linux-x86_64"
+    sha256 "b4d3d9817e6f52893ebf509b978b4b52f6651f1ed11f002c40f1ffcf7495d307"
   else
     odie "ctx: unsupported platform — only macOS (Intel/ARM) and Linux (Intel/ARM) are supported"
   end
