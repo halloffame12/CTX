@@ -1,6 +1,6 @@
 {
   "name": "ctxai-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ctx — codebase intelligence and context engine for AI coding agents (native Rust binary launcher)",
   "license": "MIT",
   "bin": {
@@ -22,12 +22,12 @@
     "node": ">=16"
   },
   "optionalDependencies": {
-    "ctxai-linux-x64": "0.1.0",
-    "ctxai-linux-arm64": "0.1.0",
-    "ctxai-darwin-x64": "0.1.0",
-    "ctxai-darwin-arm64": "0.1.0",
-"ctxai-win32-x64": "0.1.0",
-    "ctxai-windows-arm64": "0.1.0"
+    "ctxai-linux-x64": "0.1.1",
+    "ctxai-linux-arm64": "0.1.1",
+    "ctxai-darwin-x64": "0.1.1",
+    "ctxai-darwin-arm64": "0.1.1",
+    "ctxai-win32-x64": "0.1.1",
+    "ctxai-windows-arm64": "0.1.1"
   },
   "keywords": [
     "ctx",

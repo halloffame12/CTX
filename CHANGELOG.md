@@ -2,6 +2,28 @@
 
 All notable changes to `ctx` are documented here.
 
+## 0.1.1
+
+### Added
+- `ctx stats` — index statistics (files, symbols, dependency edges, `index.db`
+  size) with `--json` support; also exposed as the `ctx_stats` MCP tool.
+- `ctx context` expands task keywords through synonym groups and prefix-matches
+  against symbol names, and follows one hop of a strongly-relevant file's
+  imports into the package (see Fixed below).
+
+### Fixed
+- `.tsx` files parsed with the TSX (JSX-aware) grammar instead of plain
+  TypeScript, yielding real JSX symbols instead of a syntax-error symbol.
+- `ctx context` recency measured against on-disk mtime vs the last index build
+  — no more false "modified recently" flags on a fresh checkout.
+- `ctx context` surfaces the right files for inflected task vocabulary
+  ("login" → `authenticate`, "authentication" → `authenticateWithPassword`).
+- `ctx context` no longer prints an empty "Relevant architecture" section when
+  nothing matched.
+- `resolve_target` language-aware candidate filtering; `ctx init --force` full
+  rebuild and corrupt-`index.db` recovery; read commands refuse uninitialized
+  roots; crates.io package slimmed to 59 files / 80 KiB.
+
 ## [Unreleased]
 
 ### Added

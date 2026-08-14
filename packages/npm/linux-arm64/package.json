@@ -1,11 +1,23 @@
 {
   "name": "ctxai-linux-arm64",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ctx native binary for Linux ARM64",
-  "os": ["linux"],
-  "cpu": ["arm64"],
-  "files": ["bin", "README.md"],
-  "exports": { "./binary": "./bin/ctx" },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "exports": {
+    "./binary": "./bin/ctx"
+  },
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/halloffame12/CTX.git" }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/halloffame12/CTX.git"
+  }
 }
