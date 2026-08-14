@@ -56,7 +56,7 @@ whichever ecosystem you already use:
 | --- | --- |
 | **macOS / Linux** (Homebrew) | `brew tap halloffame12/CTX && brew install ctx` |
 | **Windows** (Winget) | `winget install halloffame12.CTX` |
-| **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-bucket && scoop install ctx` |
+| **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-ctx && scoop install ctx` |
 | **Node.js** (npm) | `npm install -g ctxai-cli` |
 | **Run without installing** | `npx ctxai-cli --version` |
 | **Rust** (cargo) | `cargo install ctxai-cli` |

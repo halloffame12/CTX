@@ -41,8 +41,20 @@ pub struct ParsedOutcome {
 }
 
 pub fn run_index(root: &Path, config: &Config) -> CtxResult<IndexReport> {
+    run_index_inner(root, config, false)
+}
+
+pub fn force_reindex(root: &Path, config: &Config) -> CtxResult<IndexReport> {
+    run_index_inner(root, config, true)
+}
+
+fn run_index_inner(root: &Path, config: &Config, force: bool) -> CtxResult<IndexReport> {
     let start = Instant::now();
     let mut db = Database::open(root)?;
+    if force {
+        // wipe all indexed state so every file is re-parsed from scratch
+        db.wipe()?;
+    }
     let mut report = IndexReport {
         total_files: 0,
         supported_files: 0,

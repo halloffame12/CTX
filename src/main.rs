@@ -2,7 +2,11 @@ fn main() {
     reset_sigpipe();
     if let Err(e) = ctx::cli::run() {
         eprintln!("error: {e}");
-        std::process::exit(1);
+        let code = match &e {
+            ctx::errors::CtxError::Usage(_) => 2,
+            _ => 1,
+        };
+        std::process::exit(code);
     }
 }
 

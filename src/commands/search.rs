@@ -1,7 +1,8 @@
 use crate::commands::Project;
-use crate::errors::CtxResult;
+use crate::errors::{CtxError, CtxResult};
 use crate::graph::database::SymbolRow;
 use crate::output::{Default, Term, emit_json};
+use crate::parser::SymbolKind;
 
 pub fn cmd_search(
     project: &Project,
@@ -12,6 +13,8 @@ pub fn cmd_search(
     t: &Term,
 ) -> CtxResult<()> {
     let limit = limit.clamp(1, 500);
+
+    let kind = normalize_kind(kind)?;
 
     if files_only {
         let files = project.db.files_like(query, limit)?;
@@ -104,4 +107,36 @@ pub fn symbol_json(s: &SymbolRow, path: Option<String>) -> serde_json::Value {
         "file": path,
         "path": path,
     })
+}
+
+fn normalize_kind(kind: Option<&str>) -> CtxResult<Option<&'static str>> {
+    match kind {
+        Some(k) => match SymbolKind::from_str(k) {
+            Some(sk) => Ok(Some(sk.as_str())),
+            None => Err(CtxError::Usage(format!(
+                "invalid symbol kind `{k}`; expected one of: {}",
+                SymbolKind::ALL_NAMES.join(", ")
+            ))),
+        },
+        None => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn kind_aliases_normalize_to_canonical_names() {
+        assert_eq!(normalize_kind(Some("fn")).unwrap(), Some("function"));
+        assert_eq!(normalize_kind(Some("const")).unwrap(), Some("constant"));
+        assert_eq!(normalize_kind(Some("alias")).unwrap(), Some("type"));
+        assert_eq!(normalize_kind(None).unwrap(), None);
+    }
+
+    #[test]
+    fn invalid_kind_is_rejected() {
+        let err = normalize_kind(Some("notakind")).unwrap_err();
+        assert!(matches!(err, CtxError::Usage(_)), "got {err:?}");
+    }
 }

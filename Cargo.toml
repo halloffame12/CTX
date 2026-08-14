@@ -11,6 +11,14 @@ keywords = ["mcp", "code-intelligence", "code-graph", "context", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 default-run = "ctx"
+include = [
+    "Cargo.toml",
+    "src/**/*.rs",
+    "tests/**/*.rs",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
 
 [[bin]]
 name = "ctx"

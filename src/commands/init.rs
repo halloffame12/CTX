@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::config::Config;
 use crate::errors::CtxResult;
-use crate::indexing::incremental::run_index;
+use crate::indexing::incremental::{force_reindex, run_index};
 use crate::output::{Default, Term, emit_json};
 
 pub fn cmd_init(
@@ -29,7 +29,11 @@ pub fn cmd_init(
         std::fs::create_dir_all(root.join(".ctx"))?;
         write_default_config(&root);
         write_gitignore(&root);
-        let report = run_index(&root, &config)?;
+        let report = if force {
+            force_reindex(&root, &config)?
+        } else {
+            run_index(&root, &config)?
+        };
         emit_json(&serde_json::to_value(report)?);
         return Ok(());
     }
@@ -41,7 +45,11 @@ pub fn cmd_init(
     write_default_config(&root);
     write_gitignore(&root);
 
-    let probe = run_index(&root, &config)?;
+    let probe = if force {
+        force_reindex(&root, &config)?
+    } else {
+        run_index(&root, &config)?
+    };
 
     t.p(&format!(
         "{} Project detected",

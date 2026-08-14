@@ -171,6 +171,19 @@ impl Database {
         Ok(())
     }
 
+    // ---- writes ------------------------------------------------------------
+
+    pub fn wipe(&mut self) -> CtxResult<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute_batch(
+            "DELETE FROM dependencies;
+             DELETE FROM symbols;
+             DELETE FROM files;",
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
     // ---- reads -------------------------------------------------------------
 
     pub fn file_by_path(&self, path: &str) -> CtxResult<Option<FileRecord>> {

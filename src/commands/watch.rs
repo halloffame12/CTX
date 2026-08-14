@@ -30,11 +30,13 @@ pub fn cmd_watch(project: &Project, t: &Term) -> CtxResult<()> {
         .watch(&project.root, RecursiveMode::Recursive)
         .map_err(|e| crate::errors::CtxError::Other(format!("watch: {e}")))?;
 
-    t.p(&format!(
-        "{} watching {} (Ctrl+C to stop)",
-        t.style(Default::GREEN, "ctx watch"),
-        project.root.display()
-    ));
+    if !t.is_json() {
+        t.p(&format!(
+            "{} watching {} (Ctrl+C to stop)",
+            t.style(Default::GREEN, "ctx watch"),
+            project.root.display()
+        ));
+    }
 
     let debounce = Duration::from_millis(project.config.watch.debounce_ms);
     let mut pending: Vec<std::path::PathBuf> = Vec::new();
@@ -83,6 +85,10 @@ fn flush(project: &Project, pending: &mut Vec<std::path::PathBuf>, t: &Term) {
     }
 }
 
+fn emit_watch_json(value: &serde_json::Value) {
+    println!("{}", serde_json::to_string(value).unwrap_or_default());
+}
+
 fn handle_change(project: &Project, db: &mut Database, rel: &str, t: &Term) {
     let full = project.root.join(rel);
     if full.is_dir() {
@@ -92,7 +98,11 @@ fn handle_change(project: &Project, db: &mut Database, rel: &str, t: &Term) {
     if !full.exists() {
         if let Ok(Some(_)) = db.file_by_path(rel) {
             let _ = crate::indexing::incremental::remove_file(&project.root, db, rel);
-            t.p(&format!("{} deleted: {rel}", t.style(Default::RED, "×")));
+            if t.is_json() {
+                emit_watch_json(&serde_json::json!({ "event": "deleted", "path": rel }));
+            } else {
+                t.p(&format!("{} deleted: {rel}", t.style(Default::RED, "×")));
+            }
         }
         return;
     }
@@ -121,16 +131,33 @@ fn handle_change(project: &Project, db: &mut Database, rel: &str, t: &Term) {
             {
                 return;
             }
-            t.p(&format!(
-                "{} {}  ({} symbols, {} deps)",
-                t.style(Default::CYAN, "changed"),
-                rel,
-                symbols,
-                deps
-            ));
+            if t.is_json() {
+                emit_watch_json(&serde_json::json!({
+                    "event": "changed",
+                    "path": rel,
+                    "symbols": symbols,
+                    "dependencies": deps,
+                }));
+            } else {
+                t.p(&format!(
+                    "{} {}  ({} symbols, {} deps)",
+                    t.style(Default::CYAN, "changed"),
+                    rel,
+                    symbols,
+                    deps
+                ));
+            }
         }
         Err(e) => {
-            t.e(&format!("failed to index {rel}: {e}"));
+            if t.is_json() {
+                emit_watch_json(&serde_json::json!({
+                    "event": "error",
+                    "path": rel,
+                    "message": e.to_string(),
+                }));
+            } else {
+                t.e(&format!("failed to index {rel}: {e}"));
+            }
         }
     }
 }

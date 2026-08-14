@@ -22,6 +22,23 @@ pub enum SymbolKind {
 }
 
 impl SymbolKind {
+    pub const ALL_NAMES: [&'static str; 14] = [
+        "function",
+        "method",
+        "class",
+        "interface",
+        "type",
+        "enum",
+        "constant",
+        "variable",
+        "struct",
+        "trait",
+        "module",
+        "field",
+        "constructor",
+        "impl",
+    ];
+
     pub fn as_str(&self) -> &'static str {
         match self {
             SymbolKind::Function => "function",

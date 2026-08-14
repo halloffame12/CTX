@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CtxError {
+    #[error("{0}")]
+    Usage(String),
     #[error("no `ctx` index found at {0}/.ctx — run `ctx init` first")]
     NotInitialized(String),
     #[error(
