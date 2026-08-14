@@ -1,10 +1,6 @@
 {
-  "##": "ctx — Scoop manifest (developer template)",
-  "##": "Hash values are RELEASE-TIME placeholders. After the first GitHub",
-  "##": "release, run scripts/generate-checksums.sh and fill in the real",
-  "##": "SHA-256 for ctx-windows-x86_64.exe / ctx-windows-aarch64.exe.",
   "version": "0.1.0",
-  "description": "Codebase intelligence and context engine for AI coding agents",
+  "description": "Codebase intelligence and context engine for AI coding agents: search, symbol lookup, impact analysis, and context building via MCP.",
   "homepage": "https://github.com/halloffame12/CTX",
   "license": "MIT",
   "architecture": {
