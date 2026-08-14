@@ -122,7 +122,7 @@ impl super::traits::LanguageParser for PythonParser {
         Ok(out)
     }
 
-    fn skeleton(&self, source: &str) -> CtxResult<String> {
+    fn skeleton(&self, source: &str, _current_rel: &str) -> CtxResult<String> {
         let tree = self.parse_tree(source)?;
         let root = tree.root_node();
         let mut ranges: Vec<(usize, usize, String)> = Vec::new();

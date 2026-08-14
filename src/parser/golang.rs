@@ -179,7 +179,7 @@ impl super::traits::LanguageParser for GoParser {
         Ok(out)
     }
 
-    fn skeleton(&self, source: &str) -> CtxResult<String> {
+    fn skeleton(&self, source: &str, _current_rel: &str) -> CtxResult<String> {
         let lang = self.language();
         Ok(crate::parser::util::skeleton_brace_wrapped(
             source,

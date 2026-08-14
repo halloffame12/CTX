@@ -270,11 +270,43 @@ fn skeleton_never_larger_than_source() {
             "package p\n\nfunc a() int {\n\treturn 1\n}\n",
         ),
     ] {
-        let s = skeletonize(lang, src, Path::new(".")).unwrap();
+        let s = skeletonize(lang, src, "test.ext", Path::new(".")).unwrap();
         assert!(
             s.len() <= src.len() * 2 + 256,
             "skeleton unexpectedly large for {lang:?}:\n{s}"
         );
         assert!(!s.is_empty());
     }
+}
+
+/// `.tsx` files must use the TSX grammar (JSX-aware), not the plain
+/// TypeScript grammar — otherwise JSX-heavy files fail to parse.
+#[test]
+fn tsx_files_parse_with_jsx_syntax() {
+    let src = r#"
+import { Link } from "next/link";
+
+export default function Footer() {
+  return (
+    <footer className="border-t">
+      <div className="flex items-center">
+        <Link href="/docs">Documentation</Link>
+      </div>
+      <p className="font-mono text-xs">MIT licensed</p>
+    </footer>
+  );
+}
+"#;
+    let s = skeletonize(
+        LanguageId::TypeScript,
+        src,
+        "components/Footer.tsx",
+        Path::new("."),
+    )
+    .unwrap();
+    assert_balanced(&s);
+    assert!(
+        s.contains("export default function Footer()"),
+        "component signature kept:\n{s}"
+    );
 }

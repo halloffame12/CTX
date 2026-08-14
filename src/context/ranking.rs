@@ -1,7 +1,5 @@
 //! Deterministic relevance ranking for context selection.
 
-use crate::graph::database::FileRecord;
-
 /// Split a raw string into lowercased keywords (alphanumeric runs), dropping
 /// common English stop words that carry no semantic weight for code queries.
 pub fn tokenize(text: &str) -> Vec<String> {
@@ -252,22 +250,6 @@ pub fn framework_bonus(path: &str) -> f64 {
         .filter(|s| FRAMEWORK_DIRS.contains(&s.to_ascii_lowercase().as_str()))
         .count() as f64;
     seg_score * 0.5
-}
-
-/// Recent changes (by file mtime) get a small relevance bump.
-pub fn recency_bonus(file: &FileRecord) -> f64 {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
-    let age_days = (now - file.mtime).max(0) as f64 / 86_400.0;
-    if age_days < 14.0 {
-        2.0
-    } else if age_days < 30.0 {
-        1.0
-    } else {
-        0.0
-    }
 }
 
 /// Hash-lurk bonus for files that many others import.

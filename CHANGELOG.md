@@ -50,6 +50,14 @@ All notable changes to `ctx` are documented here.
   returning empty.
 
 ### Fixed
+- `.tsx` files are now parsed with the TSX (JSX-aware) grammar instead of plain
+  TypeScript, so JSX components yield their real symbols instead of a single
+  syntax-error symbol (website self-index: 515 → 538 symbols, 15 → 1 parse
+  error).
+- `ctx context` no longer flags every file as "modified recently" on a fresh
+  checkout or clone. Recency is now measured against the actual on-disk mtime
+  vs the last index build (i.e. files that would show as stale in
+  `ctx doctor`), so only files edited since the last index get the bonus.
 - `resolve_target` no longer matches wrong-language files for symbol targets
   (language-aware candidate filtering).
 - `symbols`/`dependencies` counts in `ctx doctor` now come from live DB stats.

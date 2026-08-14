@@ -40,8 +40,9 @@ pub fn parse_source(
 pub fn skeletonize(
     language: LanguageId,
     source: &str,
+    current_rel: &str,
     root: &Path,
 ) -> crate::errors::CtxResult<String> {
     let parser = parser_for(language, root);
-    parser.skeleton(source)
+    parser.skeleton(source, current_rel)
 }

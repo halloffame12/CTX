@@ -201,5 +201,5 @@ pub trait LanguageParser: Send + Sync {
     ) -> crate::errors::CtxResult<Vec<Dependency>>;
 
     /// Produce a body-less skeleton that preserves all structural meaning.
-    fn skeleton(&self, source: &str) -> crate::errors::CtxResult<String>;
+    fn skeleton(&self, source: &str, current_rel: &str) -> crate::errors::CtxResult<String>;
 }

@@ -55,11 +55,11 @@ pub struct SkeletonResult {
 
 pub fn skeleton_for(
     root: &Path,
-    _rel_path: &str,
+    rel_path: &str,
     language: LanguageId,
     source: &str,
 ) -> CtxResult<SkeletonResult> {
-    let skeleton = skeletonize(language, source, root)?;
+    let skeleton = skeletonize(language, source, rel_path, root)?;
     let stats = SkeletonStats::compute(source, &skeleton);
     Ok(SkeletonResult { skeleton, stats })
 }

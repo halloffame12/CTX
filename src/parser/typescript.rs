@@ -22,17 +22,24 @@ impl JsParser {
         Self { id }
     }
 
-    pub fn tree_sitter_language(&self) -> tree_sitter::Language {
+    pub fn tree_sitter_language(&self, current_rel: &str) -> tree_sitter::Language {
+        let lower = current_rel.to_ascii_lowercase();
         match self.id {
-            LanguageId::TypeScript => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            LanguageId::TypeScript => {
+                if lower.ends_with(".tsx") {
+                    tree_sitter_typescript::LANGUAGE_TSX.into()
+                } else {
+                    tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
+                }
+            }
             LanguageId::JavaScript => tree_sitter_javascript::LANGUAGE.into(),
             _ => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
         }
     }
 
-    fn parse_tree(&self, source: &str) -> CtxResult<Tree> {
+    fn parse_tree(&self, source: &str, current_rel: &str) -> CtxResult<Tree> {
         let mut parser = tree_sitter::Parser::new();
-        let lang = self.tree_sitter_language();
+        let lang = self.tree_sitter_language(current_rel);
         parser
             .set_language(&lang)
             .map_err(|e| CtxError::Other(format!("failed to set TS language: {e}")))?;
@@ -51,7 +58,7 @@ impl super::traits::LanguageParser for JsParser {
     }
 
     fn parse(&self, source: &str, current_rel: &str, root: &Path) -> CtxResult<ParsedFile> {
-        let tree = self.parse_tree(source)?;
+        let tree = self.parse_tree(source, current_rel)?;
         let (root_node, has_errors) = {
             let r = tree.root_node();
             (r, crate::parser::util::has_errors(&r))
@@ -166,8 +173,8 @@ impl super::traits::LanguageParser for JsParser {
         Ok(out)
     }
 
-    fn skeleton(&self, source: &str) -> CtxResult<String> {
-        let lang = self.tree_sitter_language();
+    fn skeleton(&self, source: &str, current_rel: &str) -> CtxResult<String> {
+        let lang = self.tree_sitter_language(current_rel);
         Ok(skeleton_brace_wrapped(
             source,
             &lang,

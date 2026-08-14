@@ -6,8 +6,8 @@ use std::path::Path;
 
 use crate::config::Config;
 use crate::context::ranking::{
-    file_reasons, framework_bonus, hub_bonus, path_keyword_bonus, recency_bonus, score_symbol,
-    symbol_reasons, tokenize,
+    file_reasons, framework_bonus, hub_bonus, path_keyword_bonus, score_symbol, symbol_reasons,
+    tokenize,
 };
 use crate::context::skeleton::{estimate_tokens, skeleton_for};
 use crate::errors::CtxResult;
@@ -98,6 +98,30 @@ pub fn build_context_with(
     let changed: std::collections::HashSet<&str> =
         changed_paths.iter().map(|p| p.as_str()).collect();
 
+    // On-disk mtime of a candidate file, used for the recency signal. We stat
+    // the real file (not the DB snapshot) so an edit made since the last index
+    // is honoured; fresh checkouts are not flagged because the index was built
+    // after them.
+    let index_built_at = std::fs::metadata(root.join(".ctx/index.db"))
+        .and_then(|m| m.modified())
+        .map(|t| {
+            t.duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0)
+        })
+        .unwrap_or(0);
+    let recent_on_disk = |record: &FileRecord| -> bool {
+        let on_disk = std::fs::metadata(root.join(&record.path))
+            .and_then(|m| m.modified())
+            .map(|t| {
+                t.duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs() as i64)
+                    .unwrap_or(0)
+            })
+            .unwrap_or(record.mtime);
+        on_disk > index_built_at
+    };
+
     let mut file_scores: HashMap<i64, ScoredFile> = HashMap::new();
     let mut relevant_symbols: Vec<RelevantSymbol> = Vec::new();
 
@@ -143,10 +167,10 @@ pub fn build_context_with(
         let mut score = entry.score;
         let hub_count = dep_counts.get(fid).copied();
         let is_framework = framework_bonus(&file.path) > 0.0;
-        let is_recent = recency_bonus(file) > 0.0;
+        let is_recent = recent_on_disk(file);
         let in_git = changed.contains(file.path.as_str());
         score += path_keyword_bonus(&file.path, &keywords);
-        score += recency_bonus(file);
+        score += if is_recent { 2.0 } else { 0.0 };
         score += framework_bonus(&file.path);
         if let Some(dc) = hub_count {
             score += hub_bonus(dc);
@@ -173,8 +197,9 @@ pub fn build_context_with(
         let kw = path_keyword_bonus(&rec.path, &keywords);
         if kw > 0.0 {
             let hub_count = dep_counts.get(&rec.id).copied();
+            let is_recent = recent_on_disk(rec);
             let mut score = kw + framework_bonus(&rec.path) * 0.5;
-            score += recency_bonus(rec);
+            score += if is_recent { 2.0 } else { 0.0 };
             let in_git = changed.contains(rec.path.as_str());
             if in_git {
                 score += 1.5;
@@ -187,7 +212,7 @@ pub fn build_context_with(
                     reasons: file_reasons(
                         &rec.path,
                         &keywords,
-                        recency_bonus(rec) > 0.0,
+                        is_recent,
                         framework_bonus(&rec.path) > 0.0,
                         hub_count,
                         in_git,
