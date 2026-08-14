@@ -64,3 +64,10 @@ All notable changes to `ctx` are documented here.
 - Crates.io package size — `Cargo.toml` `include` restricts the crate to
   source, tests and docs (948 files / 690KiB → 59 files / 80KiB compressed).
 - README Scoop URL now points to the real bucket (`halloffame12/scoop-ctx`).
+- Read commands (`search`, `skeleton`, `symbol`, `deps`, `impact`, `context`,
+  `changed`, `diff`, `schema`, `benchmark`) now refuse a nonexistent or
+  uninitialized root with a clear error (`no ctx index found — run ctx init
+  first`) instead of silently creating an empty index under a mistyped `-R`
+  path.
+- `ctx init --force` now recovers from a corrupt/incompatible `index.db` by
+  removing the database files before rebuilding, instead of failing on open.
