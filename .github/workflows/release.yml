@@ -161,7 +161,7 @@ jobs:
             brew install ctx
 
             # npm
-            npm install -g ctxai
+            npm install -g ctxai-cli
 
             # Rust
             cargo install ctxai-cli
