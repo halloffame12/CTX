@@ -20,7 +20,7 @@ All notable changes to `ctx` are documented here.
 - MCP server over stdio (`ctx mcp`) with 10 tools; JSON output everywhere via
   `--json`.
 - `ctx stats` — index statistics (files, symbols, dependency edges, `index.db`
-  size) with `--json` support.
+  size) with `--json` support; also exposed as the `ctx_stats` MCP tool.
 
 ## 0.2.0 (Phase 2)
 

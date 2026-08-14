@@ -114,6 +114,11 @@ pub fn list_tools() -> Vec<ToolDef> {
                 }
             }),
         },
+        ToolDef {
+            name: "ctx_stats".into(),
+            description: "Index statistics: counts of files, symbols and dependencies, and the size of index.db.".into(),
+            input_schema: json!({"type":"object","properties":{},"additionalProperties":false}),
+        },
     ]
 }
 
@@ -131,6 +136,7 @@ pub fn call_tool(env: &McpEnv, name: &str, args: Value) -> CtxResult<(bool, Stri
         "ctx_context" => tool_context(project, &args)?,
         "ctx_changed" => tool_changed(project, &args)?,
         "ctx_diff" => tool_diff(project, &args)?,
+        "ctx_stats" => crate::commands::stats::stats_json(&project.root, &project.db)?,
         _ => {
             return Err(crate::errors::CtxError::Other(format!(
                 "unknown tool `{name}`"

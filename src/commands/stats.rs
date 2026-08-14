@@ -78,6 +78,14 @@ fn stats(root: &Path, db: &Database) -> CtxResult<StatsReport> {
     })
 }
 
+/// JSON rendering of the stats report, used by the MCP `ctx_stats` tool.
+pub fn stats_json(root: &Path, db: &Database) -> CtxResult<String> {
+    let report = stats(root, db)?;
+    Ok(serde_json::to_string_pretty(&serde_json::to_value(
+        &report,
+    )?)?)
+}
+
 fn human_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let mut value = bytes as f64;
