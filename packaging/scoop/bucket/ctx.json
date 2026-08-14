@@ -10,7 +10,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.0/ctx-windows-x86_64.exe",
-      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "7bf6b2dcaec65407521abe42a72cb98dfa586cd7f81ae6937d2f8f09a2498ed3",
       "bin": [
         [
           "ctx-windows-x86_64.exe",
@@ -20,7 +20,7 @@
     },
     "arm64": {
       "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.0/ctx-windows-aarch64.exe",
-      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "89a50b14350399a060b3532c6c5aff73496d09d38da09e849852cc3b7e79fc31",
       "bin": [
         [
           "ctx-windows-aarch64.exe",

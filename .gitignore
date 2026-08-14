@@ -8,3 +8,4 @@
 /website/out
 /website/.next
 /website/node_modules
+/dist

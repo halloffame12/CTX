@@ -1,15 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
 #
 # ctx — WinGet manifest
-#
-# This is the developer manifest template. After the first GitHub release
-# exists, replace the placeholder InstallerSha256 values with the real SHA-256
-# from scripts/generate-checksums.sh and submit to the winget-pkgs repository:
-#
-#   https://github.com/microsoft/winget-pkgs
-#
-# Submission structure:
-#   manifests/h/halloffame12/CTX/<version>/{CTX.installer.yaml,CTX.locale.en-US.yaml,CTX.yaml}
 PackageIdentifier: halloffame12.CTX
 PackageVersion: 0.1.0
 DefaultLocale: en-US
