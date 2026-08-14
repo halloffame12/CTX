@@ -50,9 +50,16 @@ pub fn force_reindex(root: &Path, config: &Config) -> CtxResult<IndexReport> {
 
 fn run_index_inner(root: &Path, config: &Config, force: bool) -> CtxResult<IndexReport> {
     let start = Instant::now();
+    if force {
+        // A corrupt or incompatible on-disk index must not block a rebuild:
+        // remove the database files first, then open a fresh one.
+        let _ = std::fs::remove_file(root.join(crate::graph::database::DB_PATH));
+        let _ = std::fs::remove_file(root.join(".ctx/index.db-wal"));
+        let _ = std::fs::remove_file(root.join(".ctx/index.db-shm"));
+    }
     let mut db = Database::open(root)?;
     if force {
-        // wipe all indexed state so every file is re-parsed from scratch
+        // wipe any residual state (paranoia; the file is fresh)
         db.wipe()?;
     }
     let mut report = IndexReport {

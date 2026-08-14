@@ -323,7 +323,16 @@ fn open(
     override_root: Option<&std::path::Path>,
     _git: bool,
 ) -> CtxResult<Project> {
-    let project = Project::open(cwd, override_root)?;
+    let root = match override_root {
+        Some(r) => r.to_path_buf(),
+        None => commands::discover_root(cwd)?,
+    };
+    if !root.is_dir() || !crate::graph::database::Database::exists(&root) {
+        return Err(crate::errors::CtxError::NotInitialized(
+            root.display().to_string(),
+        ));
+    }
+    let project = Project::open(&root, Some(&root))?;
     project.require_initialized()?;
     Ok(project)
 }

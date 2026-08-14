@@ -35,6 +35,12 @@ impl Project {
             Some(r) => r.to_path_buf(),
             None => discover_root(cwd)?,
         };
+        // Never create a project tree under a path that does not exist
+        // (e.g. a mistyped `-R`). Callers that are allowed to initialize a
+        // directory (MCP fallback, `ctx init`) must pass an existing path.
+        if !root.is_dir() {
+            return Err(CtxError::NotInitialized(root.display().to_string()));
+        }
         let config = Config::load(&root)?;
         let db = Database::open(&root)?;
         let git = GitRepo::discover(&root)?;
