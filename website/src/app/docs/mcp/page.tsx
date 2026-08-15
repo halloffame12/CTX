@@ -87,7 +87,7 @@ export default function McpPage() {
 }`}
       />
 
-      <H2>The ten tools</H2>
+      <H2>The eleven tools</H2>
       <P>
         Once connected, the agent can call:
       </P>
@@ -111,6 +111,7 @@ export default function McpPage() {
               ["ctx_context", "Relevance-ranked context package for a task."],
               ["ctx_changed", "Symbols changed in the working tree or since a ref."],
               ["ctx_diff", "Symbol-level diff between two refs."],
+              ["ctx_stats", "Index statistics: files, symbols, dependencies, db size."],
             ].map(([name, desc]) => (
               <tr key={name} className="border-b border-line last:border-0">
                 <td className="px-4 py-2.5 align-top font-mono text-[13px] text-accent-deep">{name}</td>

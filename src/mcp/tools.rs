@@ -296,14 +296,14 @@ fn tool_context(project: &Project, args: &Value) -> CtxResult<String> {
         .get("max_tokens")
         .and_then(|v| v.as_i64())
         .map(|n| n as usize);
-    let changed_paths: Vec<String> = if let Some(git) = &project.git {
-        crate::git::changed::changed_files(git, None)
-            .unwrap_or_default()
-            .into_iter()
-            .map(|c| c.path)
-            .collect()
+    let git_changes: Option<Vec<String>> = if project.git.is_some() {
+        project
+            .git
+            .as_ref()
+            .and_then(|git| crate::git::changed::changed_files(git, None).ok())
+            .map(|files| files.into_iter().map(|c| c.path).collect())
     } else {
-        Vec::new()
+        None
     };
     let package = crate::context::build_context_with(
         &project.db,
@@ -312,7 +312,7 @@ fn tool_context(project: &Project, args: &Value) -> CtxResult<String> {
         &project.config,
         include_bodies,
         max_tokens,
-        &changed_paths,
+        git_changes.as_deref(),
     )?;
     Ok(serde_json::to_string_pretty(&package)?)
 }

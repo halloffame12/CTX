@@ -8,7 +8,6 @@ use crate::git::GitRepo;
 use crate::git::changed::changed_files;
 use crate::lang::LanguageId;
 use crate::parser::{Symbol, parse_source};
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct SymbolDiffEntry {
     pub status: String, // Added | Removed | Modified
@@ -44,8 +43,16 @@ pub fn symbol_diff(
     test_mode_root: Option<&Path>,
 ) -> CtxResult<SymbolDiff> {
     let base = base.unwrap_or("HEAD");
-    let _ = head;
-    let files = changed_files(repo, Some(base))?;
+    // Two-ref diff (base..head): both sides come from git history.
+    // Single-ref diff (base..worktree): the "new" side is the working tree.
+    let (head_label, files, resolve_head) = match head {
+        Some(h) => (h.to_string(), diff_between(repo, base, h)?, true),
+        None => (
+            "worktree".to_string(),
+            changed_files(repo, Some(base))?,
+            false,
+        ),
+    };
     let mut out: Vec<FileDiff> = Vec::new();
     let mut added = 0;
     let mut modified = 0;
@@ -71,10 +78,11 @@ pub fn symbol_diff(
         };
         let new_src = if cf.status == "D" {
             String::new()
-        } else if cf.status == "A" {
-            std::fs::read_to_string(root.join(rel)).unwrap_or_default()
+        } else if resolve_head {
+            // both sides are historical: read "new" content from the head ref
+            repo.show(&head_label, rel)?
         } else {
-            // check worktree vs the ref
+            // working tree
             std::fs::read_to_string(root.join(rel))
                 .unwrap_or_else(|_| repo.show(base, rel).unwrap_or_default())
         };
@@ -107,17 +115,44 @@ pub fn symbol_diff(
     }
     Ok(SymbolDiff {
         base: base.to_string(),
-        head: if head.unwrap_or("worktree") == base {
-            "worktree".to_string()
-        } else {
-            head.unwrap_or("worktree").to_string()
-        },
+        head: head_label,
         files: out,
         added,
         modified,
         removed,
         large_changes,
     })
+}
+
+/// Files changed between two explicit refs (base..head), rename-aware.
+fn diff_between(
+    repo: &GitRepo,
+    base: &str,
+    head: &str,
+) -> CtxResult<Vec<crate::git::changed::ChangedFile>> {
+    use std::collections::BTreeMap;
+    let raw = repo.run(&["diff", "--name-status", base, head])?;
+    let mut out: BTreeMap<String, String> = BTreeMap::new();
+    for line in raw.lines() {
+        let mut parts = line.splitn(3, '\t');
+        let status = parts.next().unwrap_or("M");
+        let path = parts.last().unwrap_or("").trim().to_string();
+        if path.is_empty() {
+            continue;
+        }
+        let code = match status.chars().next() {
+            Some('A') => "A",
+            Some('D') => "D",
+            Some('R') | Some('C') => "R",
+            _ => "M",
+        };
+        out.insert(path, code.to_string());
+    }
+    Ok(out
+        .into_iter()
+        .filter(|(path, _)| path != ".ctx" && !path.starts_with(".ctx/"))
+        .map(|(path, status)| crate::git::changed::ChangedFile { path, status })
+        .collect())
 }
 
 fn symbols_from(src: &str, lang: LanguageId, root: &Path, rel: &str) -> Vec<Symbol> {

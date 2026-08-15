@@ -248,7 +248,7 @@ Suggested files:
       + path matches keyword \`auth\`
       + imported by 4 files (hub)
       + modified in working tree
-Context budget: 1,842 / 8,000 tokens`}
+Context budget: 1,842 / 12,000 tokens`}
               />
               <CodeBlock
                 title="ctx impact"
@@ -297,7 +297,7 @@ MODIFIED UserService.updateName  src/user/service.rs`}
                 MCP — no daemon, no port, no source leaving your machine.
               </p>
               <p className="mt-4 leading-7 text-ink-soft">
-                The server exposes ten tools: <span className="font-mono text-sm text-ink">ctx_project</span>,{" "}
+                The server exposes eleven tools: <span className="font-mono text-sm text-ink">ctx_project</span>,{" "}
                 <span className="font-mono text-sm text-ink">ctx_search</span>,{" "}
                 <span className="font-mono text-sm text-ink">ctx_skeleton</span>,{" "}
                 <span className="font-mono text-sm text-ink">ctx_symbol</span>,{" "}
@@ -305,8 +305,9 @@ MODIFIED UserService.updateName  src/user/service.rs`}
                 <span className="font-mono text-sm text-ink">ctx_dependents</span>,{" "}
                 <span className="font-mono text-sm text-ink">ctx_impact</span>,{" "}
                 <span className="font-mono text-sm text-ink">ctx_context</span>,{" "}
-                <span className="font-mono text-sm text-ink">ctx_changed</span>, and{" "}
-                <span className="font-mono text-sm text-ink">ctx_diff</span>.
+                <span className="font-mono text-sm text-ink">ctx_changed</span>,{" "}
+                <span className="font-mono text-sm text-ink">ctx_diff</span>, and{" "}
+                <span className="font-mono text-sm text-ink">ctx_stats</span>.
               </p>
             </div>
             <div className="space-y-4">

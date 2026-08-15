@@ -47,6 +47,7 @@ pub fn is_ignored_with_excludes(rel: &str, exclude: &[String]) -> bool {
 pub fn scan(root: &Path, config: &Config) -> CtxResult<Vec<DiscoveredFile>> {
     let root_owned = root.to_path_buf();
     let exclude = config.index.exclude.clone();
+    let follow_links = config.index.follow_symlinks;
     let mut builder = WalkBuilder::new(root);
     builder
         .hidden(true)
@@ -55,7 +56,7 @@ pub fn scan(root: &Path, config: &Config) -> CtxResult<Vec<DiscoveredFile>> {
         .git_global(false)
         .git_exclude(true)
         .require_git(false)
-        .follow_links(false)
+        .follow_links(follow_links)
         .filter_entry(move |entry| {
             let path = entry.path();
             if path == root_owned {

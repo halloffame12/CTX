@@ -157,10 +157,19 @@ exclude = [
     ".ctx",
     "dist",
     "build",
+    ".cache",
     "vendor",
     "coverage",
     "__pycache__",
     ".next",
+    ".nuxt",
+    ".venv",
+    "venv",
+    ".venvs",
+    "env",
+    ".env",
+    "Pods",
+    ".output",
 ]
 
 [context]

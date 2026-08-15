@@ -10,7 +10,7 @@ const LINES: { text: string; dim?: boolean }[] = [
   { text: "  src/db/session.ts        score 0.61  modified this branch" },
   { text: "" },
   { text: "Omitted 3 files below relevance threshold.", dim: true },
-  { text: "Context budget used: 1,842 / 8,000 tokens (estimate)", dim: true },
+  { text: "Context budget used: 1,842 / 12,000 tokens (estimate)", dim: true },
 ];
 
 export default function TerminalDemo() {

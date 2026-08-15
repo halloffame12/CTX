@@ -7,7 +7,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::config::Config;
-use crate::errors::CtxResult;
+use crate::errors::{CtxError, CtxResult};
 use crate::git::GitRepo;
 use crate::graph::database::Database;
 use crate::indexing::scanner::scan;
@@ -62,7 +62,7 @@ pub fn cmd_doctor(cwd: &Path, root_override: Option<&Path>, t: &Term) -> CtxResu
 
     if t.is_json() {
         emit_json(&serde_json::to_value(&report)?);
-        return Ok(());
+        return doctor_exit(&report);
     }
 
     println!("{}", t.style(crate::output::Default::BOLD, "ctx doctor"));
@@ -161,7 +161,17 @@ pub fn cmd_doctor(cwd: &Path, root_override: Option<&Path>, t: &Term) -> CtxResu
             )
         ),
     }
-    Ok(())
+    doctor_exit(&report)
+}
+
+/// A non-READY doctor report exits non-zero so CI and scripts can gate on
+/// index health. The report itself is already on stdout; the error variant is
+/// swallowed by main (it never prints `error: ...` for `Unhealthy`).
+fn doctor_exit(report: &DoctorReport) -> CtxResult<()> {
+    match report.status.as_str() {
+        "READY" => Ok(()),
+        s => Err(CtxError::Unhealthy(format!("ctx doctor: index is {s}"))),
+    }
 }
 
 fn doctor(root: &Path) -> CtxResult<DoctorReport> {

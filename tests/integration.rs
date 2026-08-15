@@ -6,7 +6,6 @@ use ctx::graph::impact::{impact, resolve_target};
 use ctx::indexing::incremental::run_index;
 use ctx::parser::parse_source;
 use ctx::parser::traits::ResolvedDependency;
-
 fn temp_root(tag: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -845,4 +844,230 @@ fn stats_reports_index_counts_and_db_size() {
         json["db_size"].as_u64().unwrap() > 0,
         "db has bytes on disk"
     );
+}
+
+#[test]
+fn doctor_returns_unhealthy_on_stale_or_uninitialized() {
+    // Uninitialized project -> NOT_INITIALIZED exit path (Err Unhealthy).
+    let root = temp_root("doctor_uninit");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let t = ctx::output::Term::new(true, true, true);
+    let err = ctx::commands::doctor::cmd_doctor(&root, None, &t).unwrap_err();
+    assert!(
+        matches!(err, ctx::errors::CtxError::Unhealthy(_)),
+        "uninitialized doctor must be Unhealthy, got {err:?}"
+    );
+
+    // Initialized + fresh -> READY (Ok).
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    ctx::commands::doctor::cmd_doctor(&root, None, &t).unwrap();
+
+    // Change file content on disk without re-indexing -> STALE (size change is
+    // always detected regardless of mtime granularity).
+    write(
+        &root,
+        "src/a.ts",
+        "export function a() { return 1; }\nexport function b() { return 2; }\n",
+    );
+    let err = ctx::commands::doctor::cmd_doctor(&root, None, &t).unwrap_err();
+    assert!(
+        matches!(err, ctx::errors::CtxError::Unhealthy(_)),
+        "stale doctor must be Unhealthy, got {err:?}"
+    );
+}
+
+#[test]
+fn is_test_file_is_segment_aware() {
+    use ctx::graph::impact::is_test_file;
+    // True positives: conventional test locations/names.
+    for p in [
+        "src/__tests__/user.ts",
+        "src/test/users.ts",
+        "src/tests/models.py",
+        "src/user.test.ts",
+        "src/user.spec.js",
+        "src/test_user.py",
+        "src/user_test.go",
+        "test_util.ts",
+        "test/helpers.ts",
+    ] {
+        assert!(is_test_file(p), "expected test file: {p}");
+    }
+    // False positives eliminated: production files that merely contain "test".
+    for p in [
+        "src/testing.ts",
+        "src/contest.ts",
+        "src/testing-utils.ts",
+        "src/testapp.ts",
+        "src/protester.py",
+        "src/testable.rs",
+    ] {
+        assert!(!is_test_file(p), "production file misclassified: {p}");
+    }
+}
+
+#[test]
+fn oversized_files_are_not_upserted() {
+    let root = temp_root("oversized");
+    write(&root, "small.py", "def small():\n    return 1\n");
+    // A supported-language file over the max size gets skipped, not indexed.
+    let mut config = Config::default();
+    config.index.max_file_size = 40;
+    let big = "x = 0\n".repeat(64);
+    write(&root, "big.py", &big);
+    let report = run_index(&root, &config).unwrap();
+    assert_eq!(report.skipped, 1, "big.py skipped");
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+    assert!(
+        db.file_by_path("big.py").unwrap().is_none(),
+        "skipped file must not be upserted"
+    );
+    assert!(db.file_by_path("small.py").unwrap().is_some());
+    let (files, _, _) = db.stats().unwrap();
+    assert_eq!(files, 1, "only small.py in graph");
+}
+
+#[test]
+fn symbol_detail_qualified_lookup_lists_methods() {
+    let root = temp_root("symdetail");
+    write(
+        &root,
+        "src/user.ts",
+        "export class UserService {\n  updateUser(id: string) { return id; }\n  deleteUser(id: string) { return id; }\n}\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    // Qualified lookup must still surface the class's methods.
+    let details = ctx::graph::symbols::symbol_detail(&db, "UserService.updateUser").unwrap();
+    assert_eq!(details.len(), 1, "qualified symbol resolves");
+    assert!(
+        details[0]
+            .methods
+            .iter()
+            .any(|m| m.name == "updateUser" || m.name == "deleteUser"),
+        "methods listed via qualified lookup: {:?}",
+        details[0]
+            .methods
+            .iter()
+            .map(|m| m.name.clone())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn context_budget_counts_included_bodies() {
+    let root = temp_root("budget");
+    // Big body so the skeleton is small but the full file is large.
+    let big_body = "    return 1\n".repeat(2000);
+    write(&root, "src/huge.py", &format!("def huge():\n{big_body}"));
+    write(&root, "src/util.py", "def helper():\n    return 2\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let skel = ctx::context::build_context(&db, &root, "huge helper", &config, false).unwrap();
+    let full = ctx::context::build_context(&db, &root, "huge helper", &config, true).unwrap();
+
+    let skel_tokens = skel.total_tokens;
+    let full_tokens = full.total_tokens;
+    assert!(
+        full_tokens > skel_tokens,
+        "include_bodies must charge full-file tokens: {full_tokens} vs {skel_tokens}"
+    );
+    // The single-file package must not claim a smaller token count than the
+    // text actually included.
+    let huge = full
+        .files
+        .iter()
+        .find(|f| f.path == "src/huge.py")
+        .expect("huge.py included");
+    let est = ctx::context::skeleton::estimate_tokens(&huge.skeleton);
+    assert!(
+        huge.tokens >= est,
+        "tokens ({}) under-counts included body ({})",
+        huge.tokens,
+        est
+    );
+}
+
+#[test]
+fn context_git_changes_considered_is_consultation_flag() {
+    let root = temp_root("gitflag");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "initial"]).unwrap();
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    // git exists but nothing changed: the signal was still consulted.
+    let pkg =
+        ctx::context::build_context_with(&db, &root, "a thing", &config, false, None, Some(&[]))
+            .unwrap();
+    assert!(
+        pkg.git_changes_considered,
+        "git signal consulted even with no changes"
+    );
+}
+
+#[test]
+fn diff_respects_explicit_head_ref() {
+    let root = temp_root("diffhead");
+    write(&root, "src/a.ts", "export function one() { return 1; }\n");
+    write(&root, "src/b.ts", "export function two() { return 2; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "one"]).unwrap();
+
+    // Second commit changes a.ts.
+    write(
+        &root,
+        "src/a.ts",
+        "export function one() { return 1; }\nexport function added() { return 3; }\n",
+    );
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "two"]).unwrap();
+
+    // Two-ref diff: HEAD~1..HEAD reports the committed change.
+    let d0 = ctx::git::diff::symbol_diff(&git, Some("HEAD~1"), Some("HEAD"), Some(&root)).unwrap();
+    let a_changed = d0
+        .files
+        .iter()
+        .find(|f| f.path == "src/a.ts")
+        .expect("a.ts in diff");
+    assert!(
+        a_changed
+            .symbols
+            .iter()
+            .any(|s| s.status == "Added" && s.name == "added"),
+        "two-ref diff sees committed additions: {:?}",
+        a_changed
+            .symbols
+            .iter()
+            .map(|s| (&s.status, &s.name))
+            .collect::<Vec<_>>()
+    );
+
+    // Uncommitted worktree change must NOT appear in a two-ref diff: b.ts was
+    // not touched in HEAD~1..HEAD, so it is not part of the diff at all.
+    write(&root, "src/b.ts", "export function two() { return 99; }\n");
+    let d1 = ctx::git::diff::symbol_diff(&git, Some("HEAD~1"), Some("HEAD"), Some(&root)).unwrap();
+    assert!(
+        d1.files.iter().all(|f| f.path != "src/b.ts"),
+        "two-ref diff ignores uncommitted worktree changes: {:?}",
+        d1.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>()
+    );
+    assert_eq!(d1.head, "HEAD", "head label is the explicit ref");
 }

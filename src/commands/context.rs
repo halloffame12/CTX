@@ -13,17 +13,17 @@ pub fn cmd_context(
 ) -> CtxResult<()> {
     project.require_initialized()?;
 
-    // Consider working-tree changes when ranking (cheap: one git call).
-    let changed_paths: Vec<String> = if no_git {
-        Vec::new()
-    } else if let Some(git) = &project.git {
-        crate::git::changed::changed_files(git, None)
-            .unwrap_or_default()
-            .into_iter()
-            .map(|c| c.path)
-            .collect()
+    // Consider working-tree changes when ranking (cheap: one git call). The
+    // flag reports whether the git signal was *consulted*, independent of
+    // whether any changes were found.
+    let git_changes: Option<Vec<String>> = if !no_git && project.git.is_some() {
+        project
+            .git
+            .as_ref()
+            .and_then(|git| crate::git::changed::changed_files(git, None).ok())
+            .map(|files| files.into_iter().map(|c| c.path).collect())
     } else {
-        Vec::new()
+        None
     };
 
     let package = build_context_with(
@@ -33,7 +33,7 @@ pub fn cmd_context(
         &project.config,
         include_bodies,
         max_tokens,
-        &changed_paths,
+        git_changes.as_deref(),
     )?;
 
     if t.is_json() {

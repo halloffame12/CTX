@@ -76,12 +76,13 @@ pub fn build_context(
     config: &Config,
     include_bodies: bool,
 ) -> CtxResult<ContextPackage> {
-    build_context_with(db, root, task, config, include_bodies, None, &[])
+    build_context_with(db, root, task, config, include_bodies, None, None)
 }
 
 /// Extended builder with a token budget override and optional working-tree
-/// git changes (used by the CLI and MCP tool). Both default to the config when
-/// not supplied.
+/// git changes (used by the CLI and MCP tool). `git_changes` is `None` when the
+/// git signal was not consulted (no repo / `--no-git`), `Some([])` when it was
+/// consulted but nothing changed, and `Some(paths)` when files are modified.
 pub fn build_context_with(
     db: &Database,
     root: &Path,
@@ -89,15 +90,19 @@ pub fn build_context_with(
     config: &Config,
     include_bodies: bool,
     max_tokens: Option<usize>,
-    changed_paths: &[String],
+    git_changes: Option<&[String]>,
 ) -> CtxResult<ContextPackage> {
     let display_keywords = tokenize(task);
     let keywords = expand_keywords(&display_keywords);
     let data = db.context_load()?;
     let (files, symbols, dep_counts) = (data.files, data.symbols, data.dep_counts);
 
-    let changed: std::collections::HashSet<&str> =
-        changed_paths.iter().map(|p| p.as_str()).collect();
+    let git_considered = git_changes.is_some();
+    let changed: std::collections::HashSet<&str> = git_changes
+        .unwrap_or_default()
+        .iter()
+        .map(|p| p.as_str())
+        .collect();
 
     // On-disk mtime of a candidate file, used for the recency signal. We stat
     // the real file (not the DB snapshot) so an edit made since the last index
@@ -338,8 +343,16 @@ pub fn build_context_with(
         let Ok(opts) = read_file_skeleton(root, rel, lang) else {
             continue;
         };
-        let skeleton_tokens = estimate_tokens(&opts.skeleton);
-        if skeleton_tokens > budget {
+        // When bodies are included the real payload is the full file, so the
+        // token budget must be charged against that text, not the body-less
+        // skeleton (which would under-count and blow the budget silently).
+        let included = if include_bodies {
+            std::fs::read_to_string(root.join(rel)).unwrap_or_else(|_| opts.skeleton.clone())
+        } else {
+            opts.skeleton
+        };
+        let included_tokens = estimate_tokens(&included);
+        if included_tokens > budget {
             if relevant_files.is_empty() {
                 // keep the single best candidate even if it overflows; this is
                 // the only intentional overshoot and it is reported below.
@@ -348,9 +361,9 @@ pub fn build_context_with(
                 continue;
             }
         } else {
-            budget -= skeleton_tokens;
+            budget -= included_tokens;
         }
-        total_tokens += skeleton_tokens;
+        total_tokens += included_tokens;
 
         // collect distinct internal + external deps for the package
         if let Ok(deps) = internal_and_external_deps(db, &sc.record) {
@@ -364,12 +377,8 @@ pub fn build_context_with(
             path: rel.clone(),
             score: sc.score,
             language: sc.record.language.clone(),
-            skeleton: if include_bodies {
-                std::fs::read_to_string(root.join(rel)).unwrap_or_else(|_| opts.skeleton.clone())
-            } else {
-                opts.skeleton
-            },
-            tokens: skeleton_tokens,
+            skeleton: included,
+            tokens: included_tokens,
             reasons: sc.reasons,
         });
     }
@@ -403,7 +412,7 @@ pub fn build_context_with(
         omitted_files,
         budget_exceeded: total_tokens > budget_total,
         token_estimate: true,
-        git_changes_considered: !changed_paths.is_empty(),
+        git_changes_considered: git_considered,
     })
 }
 

@@ -206,8 +206,15 @@ fn run_index_inner(root: &Path, config: &Config, force: bool) -> CtxResult<Index
     for path in &deleted {
         Database::delete_file(&tx, path)?;
     }
-    // upsert every discovered file (with existing hash where unchanged)
+    // upsert every non-skipped discovered file (with existing hash where
+    // unchanged). Skipped (oversized) files never enter the graph, so a
+    // `ctx search` or `ctx stats` cannot report them as indexed.
+    let skipped_paths: std::collections::HashSet<&str> =
+        skipped.iter().map(|d| d.rel_path.as_str()).collect();
     for d in &discovered {
+        if skipped_paths.contains(d.rel_path.as_str()) {
+            continue;
+        }
         let (hash, mtime, size) = if let Some(rec) = existing_by_path.get(&d.rel_path) {
             if rec.size == d.size && rec.mtime == d.mtime {
                 (rec.hash.clone(), d.mtime, d.size)

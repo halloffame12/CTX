@@ -192,11 +192,11 @@ Suggested files:
 Budgeting (token counts are **estimates** — the heuristic is bytes/4):
 
 ```bash
-ctx context "add OAuth" --max-tokens 8000
+ctx context "add OAuth" --max-tokens 12000
 ```
 
 ```
-Context budget: 7,842 / 8,000 tokens (estimate)
+Context budget: 7,842 / 12,000 tokens (estimate)
 Omitted: 13 lower-relevance files
 ```
 

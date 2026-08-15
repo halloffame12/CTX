@@ -24,6 +24,11 @@ pub enum CtxError {
     Io(String),
     #[error("{0}")]
     Other(String),
+    /// Diagnostic failure whose report has already been emitted (e.g. a
+    /// non-READY `ctx doctor`). Carries a non-zero exit code but must not be
+    /// echoed as `error: ...` on top of the printed report.
+    #[error("{0}")]
+    Unhealthy(String),
 }
 
 impl From<rusqlite::Error> for CtxError {

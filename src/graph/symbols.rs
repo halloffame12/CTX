@@ -96,7 +96,18 @@ pub struct SymbolDetail {
 pub fn symbol_detail(db: &Database, name: &str) -> CtxResult<Vec<SymbolDetail>> {
     let mut out = Vec::new();
     for located in resolve_symbol(db, name, None)? {
-        let methods = methods_of(db, located.file.id, name)?;
+        // For a class/struct, `parent` is its containing scope and methods are
+        // keyed on the symbol's own name. For a member lookup such as
+        // "UserService.updateUser", the resolved symbol is the method and the
+        // enclosing class name is `parent`. Never pass the full qualified query
+        // string here — it cannot match `parent` in the methods query.
+        let class_name = located
+            .symbol
+            .parent
+            .as_deref()
+            .filter(|p| !p.is_empty())
+            .unwrap_or(&located.symbol.name);
+        let methods = methods_of(db, located.file.id, class_name)?;
         let references = db.dependents_of(located.file.id)?;
         let dependencies = db.internal_dependencies_of(located.file.id)?;
         out.push(SymbolDetail {

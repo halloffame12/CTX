@@ -95,23 +95,29 @@ impl Graph {
     }
 }
 
+/// Segment-aware test-file detection. A file counts as a test when a path
+/// segment is a test directory (`test`, `tests`, `__tests__`) or the basename
+/// follows a conventional test pattern. Whole-segment matching avoids
+/// substring false positives such as `src/testing.ts` or `contest.ts`.
 pub fn is_test_file(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
-    if lower.contains("__tests__/") || lower.contains("/__tests__") {
+    let segs: Vec<&str> = lower.split('/').collect();
+    if segs
+        .iter()
+        .any(|s| *s == "test" || *s == "tests" || *s == "__tests__")
+    {
         return true;
     }
-    if lower.contains("/test") || lower.contains("/tests") || lower.contains("_test") {
-        return true;
-    }
-    lower.ends_with(".test.ts")
-        || lower.ends_with(".test.tsx")
-        || lower.ends_with(".test.js")
-        || lower.ends_with(".test.jsx")
-        || lower.ends_with(".spec.ts")
-        || lower.ends_with(".spec.js")
-        || lower.ends_with("_test.py")
-        || lower.ends_with("_test.go")
-        || lower.starts_with("test_")
+    let base = segs.last().copied().unwrap_or(&lower);
+    base.ends_with(".test.ts")
+        || base.ends_with(".test.tsx")
+        || base.ends_with(".test.js")
+        || base.ends_with(".test.jsx")
+        || base.ends_with(".spec.ts")
+        || base.ends_with(".spec.js")
+        || base.ends_with("_test.py")
+        || base.ends_with("_test.go")
+        || base.starts_with("test_")
 }
 
 /// Run impact analysis. `file_id` is the starting point; files are grouped by

@@ -219,9 +219,9 @@ impl Database {
     }
 
     pub fn files_like(&self, needle: &str, limit: usize) -> CtxResult<Vec<FileRecord>> {
-        let pattern = format!("%{}%", needle);
+        let pattern = format!("%{}%", escape_like(needle));
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, hash, mtime, language, size FROM files WHERE path LIKE ?1 ORDER BY path LIMIT ?2",
+            "SELECT id, path, hash, mtime, language, size FROM files WHERE path LIKE ?1 ESCAPE '\\' ORDER BY path LIMIT ?2",
         )?;
         let rows = stmt
             .query_map(params![pattern, limit as i64], row_file)?
@@ -318,7 +318,7 @@ impl Database {
         kind: Option<&str>,
         limit: usize,
     ) -> CtxResult<Vec<SymbolRow>> {
-        let pattern = format!("%{}%", term);
+        let pattern = format!("%{}%", escape_like(term));
         let exact = term.to_string();
         let base = "SELECT s.id, s.file_id, s.name, s.kind, s.signature, s.parent, s.visibility, s.exported,
                     s.start_line, s.end_line, s.start_byte, s.end_byte
@@ -326,7 +326,7 @@ impl Database {
         let (sql, bound): (String, Vec<Box<dyn rusqlite::ToSql>>) = match kind {
             Some(k) => (
                 format!(
-                    "{base} WHERE s.name LIKE ?1 AND s.kind = ?2
+                    "{base} WHERE s.name LIKE ?1 ESCAPE '\\' AND s.kind = ?2
                      ORDER BY CASE WHEN s.name = ?3 THEN 0 ELSE 1 END, s.start_line LIMIT ?4"
                 ),
                 vec![
@@ -338,7 +338,7 @@ impl Database {
             ),
             None => (
                 format!(
-                    "{base} WHERE s.name LIKE ?1
+                    "{base} WHERE s.name LIKE ?1 ESCAPE '\\'
                      ORDER BY CASE WHEN s.name = ?2 THEN 0 ELSE 1 END, s.start_line LIMIT ?3"
                 ),
                 vec![Box::new(pattern), Box::new(exact), Box::new(limit as i64)],
@@ -607,4 +607,62 @@ pub fn path_language(path: &str) -> Option<LanguageId> {
             .and_then(|e| e.to_str())
             .unwrap_or(""),
     )
+}
+
+/// Escape `%`, `_` and `\` so a user query is matched literally inside a
+/// `LIKE ? ESCAPE '\'` pattern rather than acting as SQL wildcards.
+pub fn escape_like(term: &str) -> String {
+    let mut out = String::with_capacity(term.len());
+    for c in term.chars() {
+        match c {
+            '%' | '_' | '\\' => {
+                out.push('\\');
+                out.push(c);
+            }
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn like_escape_escapes_wildcards() {
+        assert_eq!(escape_like("foo"), "foo");
+        assert_eq!(escape_like("a_b"), "a\\_b");
+        assert_eq!(escape_like("100%"), "100\\%");
+        assert_eq!(escape_like("a\\b"), "a\\\\b");
+        assert_eq!(escape_like("%_\\"), "\\%\\_\\\\");
+    }
+
+    #[test]
+    fn files_like_matches_literal_underscore() {
+        let root = tempfile_dir();
+        let mut db = Database::open(&root).unwrap();
+        let tx = db.begin().unwrap();
+        Database::upsert_file(&tx, "src/user_service.ts", "h", 0, "typescript", 10).unwrap();
+        Database::upsert_file(&tx, "src/userservice.ts", "h", 0, "typescript", 10).unwrap();
+        Database::upsert_file(&tx, "src/userservice.py", "h", 0, "python", 10).unwrap();
+        tx.commit().unwrap();
+
+        // `_` must be literal: only the file with a real underscore matches.
+        let hits = db.files_like("user_service", 10).unwrap();
+        assert_eq!(hits.len(), 1, "literal underscore: {hits:?}");
+        assert_eq!(hits[0].path, "src/user_service.ts");
+
+        let hits2 = db.files_like("userservice", 10).unwrap();
+        assert_eq!(hits2.len(), 2, "plain substring matches both: {hits2:?}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    fn tempfile_dir() -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("ctx_db_like_{nanos}"))
+    }
 }
