@@ -148,7 +148,7 @@ export default function Home() {
         </section>
 
         {/* ---------------- INSTALL STRIP ---------------- */}
-        <section className="border-y border-line bg-surface px-4 py-8 sm:px-6">
+        <section id="install" className="scroll-mt-20 border-y border-line bg-surface px-4 py-8 sm:px-6">
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2">
             <div>
               <h2 className="mb-3 text-sm font-semibold text-ink">Install</h2>

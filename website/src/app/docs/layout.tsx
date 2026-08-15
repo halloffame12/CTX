@@ -16,7 +16,23 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Navbar />
-      <div className="mx-auto flex max-w-5xl gap-10 px-4 py-12 sm:px-6">
+      <nav
+        aria-label="Docs sections"
+        className="border-b border-line bg-surface px-4 py-3 md:hidden"
+      >
+        <div className="ctx-scroll flex gap-2 overflow-x-auto">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="whitespace-nowrap rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+      <div className="mx-auto flex max-w-5xl gap-10 px-4 py-8 sm:px-6 md:py-12">
         <aside className="hidden w-52 shrink-0 md:block">
           <nav className="sticky top-20 space-y-1">
             <p className="mb-3 px-2 font-mono text-xs uppercase tracking-widest text-ink-faint">

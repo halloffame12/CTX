@@ -129,8 +129,8 @@ export default function McpPage() {
       <P>
         Once connected, the agent can call:
       </P>
-      <div className="my-5 overflow-hidden rounded-lg border border-line">
-        <table className="w-full border-collapse text-sm">
+      <div className="my-5 overflow-x-auto rounded-lg border border-line">
+        <table className="w-full min-w-[560px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line bg-paper text-left">
               <th className="px-4 py-2.5 font-mono text-xs font-semibold text-ink">Tool</th>
