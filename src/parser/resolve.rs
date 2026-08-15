@@ -233,8 +233,26 @@ pub fn rust_path_to_candidates(path_body: &str, current_rel: &str) -> Vec<String
     };
 
     if first == "crate" {
-        let added = push_path(&mut cands, &parts[1..]);
-        let _ = added;
+        let rest = &parts[1..];
+        push_path(&mut cands, rest);
+        // `crate::` resolves relative to the crate root, which is the
+        // directory containing lib.rs / main.rs. When that root is a
+        // subdirectory (monorepo / nested crate), probe from the current
+        // file's own directory as well.
+        let base = dir_of(current_rel);
+        if !base.is_empty() {
+            let prefixed: Vec<String> = cands
+                .iter()
+                .filter_map(|c| {
+                    if c.is_empty() {
+                        None
+                    } else {
+                        Some(format!("{base}/{c}"))
+                    }
+                })
+                .collect();
+            cands.extend(prefixed);
+        }
     } else if first == "self" {
         let base = dir_of(current_rel);
         let rest = &parts[1..];

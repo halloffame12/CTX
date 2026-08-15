@@ -226,12 +226,20 @@ pub fn resolve_target(
             return Ok(Some((f.path, f.id, None)));
         }
     }
-    // symbol
+    // symbol (bare name)
     for row in db.symbols_by_name(target, 10)? {
         if row.name == target
             && let Some(file) = db.file_by_id(row.file_id)?
         {
             return Ok(Some((file.path, file.id, Some(row.name))));
+        }
+    }
+    // qualified symbol (Parent.member)
+    if let Some((parent, member)) = target.split_once('.') {
+        for row in db.symbols_by_parent_and_name(parent, member, 10)? {
+            if let Some(file) = db.file_by_id(row.file_id)? {
+                return Ok(Some((file.path, file.id, Some(row.name))));
+            }
         }
     }
     Ok(None)

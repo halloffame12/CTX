@@ -664,6 +664,71 @@ fn duplicate_symbols_and_imports_are_preserved() {
 }
 
 #[test]
+fn qualified_symbol_lookup_resolves_parent_member() {
+    let root = temp_root("qualified");
+    write(
+        &root,
+        "src/user.ts",
+        "export interface User { id: string; name: string; }\nexport class UserService {\n  updateUser(id: string) { return id; }\n  updatePhoto(id: string) { return id; }\n}\n",
+    );
+    write(
+        &root,
+        "src/app.ts",
+        "import { UserService } from './user';\nexport function run() { return UserService; }\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let found = ctx::graph::symbols::resolve_symbol(&db, "UserService.updateUser", None).unwrap();
+    assert_eq!(
+        found.len(),
+        1,
+        "qualified name resolves to exactly one symbol: {found:?}"
+    );
+    assert_eq!(found[0].symbol.name, "updateUser");
+    assert_eq!(found[0].symbol.parent.as_deref(), Some("UserService"));
+
+    let (path, _file, symbol) =
+        resolve_target(&db, "UserService.updateUser").unwrap().unwrap();
+    assert_eq!(path, "src/user.ts");
+    assert_eq!(symbol.as_deref(), Some("updateUser"));
+
+    let bare = ctx::graph::symbols::resolve_symbol(&db, "updateUser", None).unwrap();
+    assert_eq!(bare.len(), 1, "bare name still resolves");
+}
+
+#[test]
+fn rust_crate_resolves_from_nested_crate_root() {
+    let root = temp_root("rustcrate");
+    write(
+        &root,
+        "rs/lib.rs",
+        "pub mod models;\npub mod api;\n\nuse crate::models::User;\nuse super::api::Client;\n\npub fn handle(u: User) -> User { u }\n",
+    );
+    write(&root, "rs/models.rs", "pub struct User { pub id: String }\n");
+    write(&root, "rs/api.rs", "pub struct Client;\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let lib = db.file_by_path("rs/lib.rs").unwrap().unwrap();
+    let deps = db.internal_dependencies_of(lib.id).unwrap();
+    let targets: Vec<&str> = deps.iter().map(|(p, _)| p.as_str()).collect();
+    assert!(
+        targets.iter().any(|p| *p == "rs/models.rs"),
+        "crate::models resolves from nested crate root, got: {targets:?}"
+    );
+    assert!(
+        targets.iter().any(|p| *p == "rs/api.rs"),
+        "super::api resolves from nested crate root, got: {targets:?}"
+    );
+
+    let (path, _, _) = resolve_target(&db, "User").unwrap().unwrap();
+    assert_eq!(path, "rs/models.rs");
+}
+
+#[test]
 fn changed_reports_deleted_files_as_deleted() {
     let root = temp_root("changed");
     write(&root, "src/a.ts", "export function a() { return 1; }\n");

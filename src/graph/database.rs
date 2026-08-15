@@ -289,6 +289,27 @@ impl Database {
         Ok(rows)
     }
 
+    /// Look up a symbol whose parent (containing class/struct) matches `parent`
+    /// and whose own name matches `name`. Used for qualified lookups such as
+    /// `UserService.updateUser`.
+    pub fn symbols_by_parent_and_name(
+        &self,
+        parent: &str,
+        name: &str,
+        limit: usize,
+    ) -> CtxResult<Vec<SymbolRow>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT s.id, s.file_id, s.name, s.kind, s.signature, s.parent, s.visibility, s.exported,
+                    s.start_line, s.end_line, s.start_byte, s.end_byte
+             FROM symbols s WHERE s.parent = ?1 AND s.name = ?2
+             ORDER BY s.start_line LIMIT ?3",
+        )?;
+        let rows = stmt
+            .query_map(params![parent, name, limit as i64], row_symbol)?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
     /// Search across symbol names and file paths. Uses substring + prefix
     /// heuristics; deterministic ordering.
     pub fn search(

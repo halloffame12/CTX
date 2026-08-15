@@ -4,14 +4,36 @@ use crate::errors::CtxResult;
 use crate::graph::database::{Database, FileRecord, SymbolRow};
 
 /// Resolve a symbol by exact name; prefer exported/class-level matches when
-/// several symbols share a name. Returns the file it lives in with row.
+/// several symbols share a name. Accepts a bare name (`updateUser`) or a
+/// qualified name (`UserService.updateUser`). Returns the file it lives in
+/// with row.
 pub fn resolve_symbol(
     db: &Database,
     name: &str,
     file_id: Option<i64>,
 ) -> CtxResult<Vec<LocatedSymbol>> {
-    let rows = db.symbols_by_name(name, 200)?;
     let mut out = Vec::new();
+
+    // Qualified lookup: `Parent.member`. Prefer parent+name matches so the
+    // display name (Parent.member) used by `ctx search` round-trips.
+    if let Some((parent, member)) = name.split_once('.') {
+        for row in db.symbols_by_parent_and_name(parent, member, 200)? {
+            let Some(file) = db.file_by_id(row.file_id)? else {
+                continue;
+            };
+            if let Some(fid) = file_id
+                && fid != row.file_id
+            {
+                continue;
+            }
+            out.push(LocatedSymbol { symbol: row, file });
+        }
+        if !out.is_empty() {
+            return Ok(out);
+        }
+    }
+
+    let rows = db.symbols_by_name(name, 200)?;
     for row in rows {
         let Some(file) = db.file_by_id(row.file_id)? else {
             continue;
