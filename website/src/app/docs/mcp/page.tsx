@@ -87,6 +87,44 @@ export default function McpPage() {
 }`}
       />
 
+      <H2>Using the MCP server</H2>
+      <P>
+        The tools read a local SQLite index, so point the server at a project
+        that has been indexed first. The server uses the project at its current
+        working directory — if your client launches the server from elsewhere,
+        pass the project root explicitly:
+      </P>
+      <CodeBlock
+        title="smoke test (your project already indexed with `ctx init`)"
+        code={`ctx mcp -R /path/to/project`}
+      />
+      <P>
+        Then run <span className="font-mono text-sm text-ink">ctx init</span>{" "}
+        in the project to build the index, and confirm the server responds:
+      </P>
+      <CodeBlock
+        title="verify the handshake over stdio"
+        code={`printf '%s\\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \\
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \\
+  | ctx mcp`}
+      />
+      <P>
+        You should see an <span className="font-mono text-sm text-ink">initialize</span>{" "}
+        response naming{" "}
+        <span className="font-mono text-sm text-ink">ctx</span>, followed by the
+        eleven tools below. Once connected, the agent can call any tool with a
+        task-specific query — for example{" "}
+        <span className="font-mono text-sm text-ink">ctx_search</span> for{" "}
+        <span className="font-mono text-sm text-ink">&quot;login&quot;</span>{" "}
+        or <span className="font-mono text-sm text-ink">ctx_context</span> for a
+        ranked package of files relevant to a feature.
+      </P>
+      <P>
+        The index is a snapshot: re-run{" "}
+        <span className="font-mono text-sm text-ink">ctx init</span> after
+        adding or renaming files so the tools see them.
+      </P>
+
       <H2>The eleven tools</H2>
       <P>
         Once connected, the agent can call:
