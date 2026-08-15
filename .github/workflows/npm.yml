@@ -113,5 +113,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: npx ctxai --version
-        run: npx -y ctxai@${{ needs.verify.outputs.version }} --version
+      - name: npx ctxai-cli --version
+        run: npx -y ctxai-cli@${{ needs.verify.outputs.version }} --version
