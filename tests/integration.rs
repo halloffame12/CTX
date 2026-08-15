@@ -714,13 +714,13 @@ fn rust_crate_resolves_from_nested_crate_root() {
 
     let lib = db.file_by_path("rs/lib.rs").unwrap().unwrap();
     let deps = db.internal_dependencies_of(lib.id).unwrap();
-    let targets: Vec<&str> = deps.iter().map(|(p, _)| p.as_str()).collect();
+    let targets: Vec<String> = deps.iter().map(|(p, _)| p.clone()).collect();
     assert!(
-        targets.iter().any(|p| *p == "rs/models.rs"),
+        targets.contains(&"rs/models.rs".to_string()),
         "crate::models resolves from nested crate root, got: {targets:?}"
     );
     assert!(
-        targets.iter().any(|p| *p == "rs/api.rs"),
+        targets.contains(&"rs/api.rs".to_string()),
         "super::api resolves from nested crate root, got: {targets:?}"
     );
 
