@@ -689,8 +689,9 @@ fn qualified_symbol_lookup_resolves_parent_member() {
     assert_eq!(found[0].symbol.name, "updateUser");
     assert_eq!(found[0].symbol.parent.as_deref(), Some("UserService"));
 
-    let (path, _file, symbol) =
-        resolve_target(&db, "UserService.updateUser").unwrap().unwrap();
+    let (path, _file, symbol) = resolve_target(&db, "UserService.updateUser")
+        .unwrap()
+        .unwrap();
     assert_eq!(path, "src/user.ts");
     assert_eq!(symbol.as_deref(), Some("updateUser"));
 
@@ -706,7 +707,11 @@ fn rust_crate_resolves_from_nested_crate_root() {
         "rs/lib.rs",
         "pub mod models;\npub mod api;\n\nuse crate::models::User;\nuse super::api::Client;\n\npub fn handle(u: User) -> User { u }\n",
     );
-    write(&root, "rs/models.rs", "pub struct User { pub id: String }\n");
+    write(
+        &root,
+        "rs/models.rs",
+        "pub struct User { pub id: String }\n",
+    );
     write(&root, "rs/api.rs", "pub struct Client;\n");
     let config = Config::default();
     run_index(&root, &config).unwrap();
