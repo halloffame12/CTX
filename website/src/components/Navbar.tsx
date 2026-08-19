@@ -28,7 +28,7 @@ export default function Navbar() {
           : "border-transparent bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
+      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:h-16 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-mono text-lg font-semibold text-ink">
           <span className="grid size-7 place-items-center rounded bg-accent text-sm font-bold text-white">
             &gt;_
@@ -64,7 +64,7 @@ export default function Navbar() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="grid size-10 place-items-center rounded-lg border border-line text-ink md:hidden"
+          className="grid size-11 shrink-0 place-items-center rounded-lg border border-line text-ink md:hidden"
         >
           <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             {open ? (
@@ -88,7 +88,7 @@ export default function Navbar() {
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setOpen(false)}
-                className="block rounded px-2 py-2.5 text-sm text-ink-soft hover:bg-line/50 hover:text-ink"
+                className="block rounded px-2 py-3 text-sm text-ink-soft hover:bg-line/50 hover:text-ink"
               >
                 {l.label}
               </a>
@@ -97,7 +97,7 @@ export default function Navbar() {
                 key={l.label}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="block rounded px-2 py-2.5 text-sm text-ink-soft hover:bg-line/50 hover:text-ink"
+                className="block rounded px-2 py-3 text-sm text-ink-soft hover:bg-line/50 hover:text-ink"
               >
                 {l.label}
               </Link>

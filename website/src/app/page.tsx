@@ -106,23 +106,23 @@ export default function Home() {
       <Navbar />
       <main>
         {/* ---------------- HERO ---------------- */}
-        <section className="px-4 pt-16 pb-12 sm:px-6 sm:pt-20">
-          <div className="mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1fr_1fr]">
+        <section className="px-4 pt-12 pb-10 sm:px-6 sm:pt-20 sm:pb-12">
+          <div className="mx-auto grid max-w-5xl items-center gap-10 sm:gap-12 lg:grid-cols-[1fr_1fr]">
             <div>
-              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-ink sm:text-5xl">
+              <h1 className="text-[clamp(2rem,5vw+0.5rem,2.25rem)] font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl sm:leading-[1.1]">
                 Codebase context for AI coding agents
               </h1>
-              <p className="mt-5 max-w-xl text-lg leading-7 text-ink-soft">
+              <p className="mt-4 max-w-xl text-base leading-6 text-ink-soft sm:mt-5 sm:text-lg sm:leading-7">
                 <span className="font-mono text-accent-deep">ctx</span> indexes a
                 repository into a local, deterministic code graph and answers the
                 questions agents actually ask: where does this symbol live, what
                 would break if I change it, and which files does this task need?
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center">
                 <Link
                   href="/docs"
-                  className="inline-flex items-center justify-center rounded-lg bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90 sm:w-auto"
                 >
                   Read the docs
                 </Link>
@@ -130,13 +130,13 @@ export default function Home() {
                   href="https://github.com/halloffame12/CTX"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink/30"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink/30 sm:w-auto"
                 >
                   View on GitHub
                 </a>
               </div>
 
-              <p className="mt-8 font-mono text-xs text-ink-faint">
+              <p className="mt-6 font-mono text-xs leading-5 text-ink-faint">
                 Measured on this project&apos;s own repo: 75 files · 873 symbols · 452 edges indexed in ~90 ms.
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function Home() {
         {/* ---------------- INSTALL STRIP ---------------- */}
         <section id="install" className="scroll-mt-20 border-y border-line bg-surface px-4 py-8 sm:px-6">
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2">
-            <div>
+            <div className="min-w-0">
               <h2 className="mb-3 text-sm font-semibold text-ink">Install</h2>
               <CodeBlock
                 title="npm — no Rust toolchain needed"
@@ -158,7 +158,7 @@ export default function Home() {
 ctx --version`}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="mb-3 text-sm font-semibold text-ink">Or via cargo</h2>
               <CodeBlock
                 title="cargo — from source"
@@ -287,7 +287,7 @@ MODIFIED UserService.updateName  src/user/service.rs`}
         {/* ---------------- MCP ---------------- */}
         <section className="px-4 py-16 sm:px-6 sm:py-24">
           <div className="mx-auto grid max-w-5xl items-start gap-10 lg:grid-cols-2">
-            <div>
+            <div className="min-w-0">
               <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 Plug into any MCP client
               </h2>
@@ -310,7 +310,7 @@ MODIFIED UserService.updateName  src/user/service.rs`}
                 <span className="font-mono text-sm text-ink">ctx_stats</span>.
               </p>
             </div>
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <CodeBlock
                 title="opencode / Claude Desktop"
                 code={`{

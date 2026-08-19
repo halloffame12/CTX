@@ -9,7 +9,7 @@ export function CodeBlock({
   code: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface">
       {title && (
         <div className="flex items-center justify-between border-b border-line px-4 py-2">
           <span className="font-mono text-xs text-ink-faint">{title}</span>

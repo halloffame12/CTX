@@ -26,13 +26,13 @@ const LINES: { text: string; dim?: boolean }[] = [
 export default function TerminalDemo() {
   return (
     <div className="w-full rounded-lg border border-line bg-ink text-left shadow-sm">
-      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
+      <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2 sm:px-4 sm:py-2.5">
         <span className="size-2.5 rounded-full bg-[#3f3f46]" />
         <span className="size-2.5 rounded-full bg-[#3f3f46]" />
         <span className="size-2.5 rounded-full bg-[#3f3f46]" />
-        <span className="ml-3 font-mono text-xs text-white/40">ctx — zsh</span>
+        <span className="ml-3 truncate font-mono text-xs text-white/40">ctx — zsh</span>
       </div>
-      <div className="ctx-scroll overflow-x-auto p-4 font-mono text-[13px] leading-6">
+      <div className="ctx-scroll max-h-80 overflow-auto p-3 font-mono text-xs leading-5 sm:max-h-none sm:p-4 sm:text-[13px] sm:leading-6">
         {LINES.map((line, i) => (
           <p key={i} className={line.dim ? "text-white/35" : "text-white/85"}>
             {line.text}
