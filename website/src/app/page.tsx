@@ -33,6 +33,13 @@ const jsonLd = {
   codeRepository: "https://github.com/halloffame12/CTX",
 };
 
+const STATS = [
+  { label: "files", value: "75" },
+  { label: "symbols", value: "873" },
+  { label: "edges", value: "452" },
+  { label: "index time", value: "~90 ms" },
+];
+
 const FEATURES = [
   {
     title: "Incremental code graph",
@@ -95,6 +102,11 @@ const LANGS = [
   },
 ];
 
+const PRIMARY_BTN =
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 active:scale-[0.98]";
+const SECONDARY_BTN =
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-surface px-6 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink/30 active:scale-[0.98]";
+
 export default function Home() {
   return (
     <>
@@ -105,62 +117,75 @@ export default function Home() {
       <Navbar />
       <main>
         {/* ---------------- HERO ---------------- */}
-        <section className="px-4 pt-12 pb-10 sm:px-6 sm:pt-20 sm:pb-12">
-          <div className="mx-auto max-w-5xl">
-            <div className="max-w-2xl">
-              <h1 className="text-[clamp(2rem,5vw+0.5rem,2.25rem)] font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl sm:leading-[1.1]">
-                Codebase context for AI coding agents
-              </h1>
-              <p className="mt-4 max-w-xl text-base leading-6 text-ink-soft sm:mt-5 sm:text-lg sm:leading-7">
-                <span className="font-mono text-accent-deep">ctx</span> indexes a
-                repository into a local, deterministic code graph and answers the
-                questions agents actually ask: where does this symbol live, what
-                would break if I change it, and which files does this task need?
-              </p>
+        <section className="ctx-container pt-12 pb-16 sm:pt-24 sm:pb-20">
+          <div className="max-w-4xl">
+            <h1 className="text-[clamp(2rem,4.5vw+0.5rem,5rem)] font-bold leading-[1.08] tracking-tight text-ink">
+              Codebase context for AI coding agents
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-ink-soft sm:text-xl sm:leading-8">
+              <span className="font-mono text-accent-deep">ctx</span> indexes a
+              repository into a local, deterministic code graph and answers the
+              questions agents actually ask: where does this symbol live, what
+              would break if I change it, and which files does this task need?
+            </p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center">
-                <Link
-                  href="/docs"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90 sm:w-auto"
-                >
-                  Read the docs
-                </Link>
-                <a
-                  href="https://github.com/halloffame12/CTX"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink/30 sm:w-auto"
-                >
-                  View on GitHub
-                </a>
-              </div>
-
-              <p className="mt-6 font-mono text-xs leading-5 text-ink-faint">
-                Measured on this project&apos;s own repo: 75 files · 873 symbols · 452 edges indexed in ~90 ms.
-              </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link href="/docs" className={`${PRIMARY_BTN} w-full sm:w-auto`}>
+                Read the docs
+              </Link>
+              <a
+                href="https://github.com/halloffame12/CTX"
+                target="_blank"
+                rel="noreferrer"
+                className={`${SECONDARY_BTN} w-full sm:w-auto`}
+              >
+                View on GitHub
+              </a>
             </div>
 
-            <div className="mt-10 sm:mt-12">
-              <video
-                className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                aria-label="Cinematic product reveal for ctx"
-              >
-                <source src="/A_second_cinematic_product.mp4" type="video/mp4" />
-              </video>
+            <dl className="mt-10 grid max-w-2xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
+              {STATS.map((s) => (
+                <div key={s.label} className="bg-paper p-4">
+                  <dt className="font-mono text-xs text-ink-faint">{s.label}</dt>
+                  <dd className="mt-1 text-2xl font-semibold text-ink">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className="mx-auto mt-12 max-w-5xl">
+            <video
+              className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-label="Cinematic product reveal for ctx"
+            >
+              <source src="/A_second_cinematic_product.mp4" type="video/mp4" />
+            </video>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-ink-faint">
+              <span>ctx — product demo</span>
+              <span>v0.1.2 · 10s loop · 1280×720</span>
             </div>
           </div>
         </section>
 
-        {/* ---------------- INSTALL STRIP ---------------- */}
-        <section id="install" className="scroll-mt-20 border-y border-line bg-surface px-4 py-8 sm:px-6">
-          <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2">
+        {/* ---------------- INSTALL ---------------- */}
+        <section id="install" className="scroll-mt-20 border-y border-line bg-surface">
+          <div className="ctx-container grid gap-10 py-12 sm:py-14 lg:grid-cols-3">
+            <div className="min-w-0 lg:pr-8">
+              <h2 className="text-sm font-semibold text-ink">Install</h2>
+              <p className="mt-2 max-w-xs text-sm leading-6 text-ink-soft">
+                One binary, every package manager. The npm build ships without a
+                Rust toolchain.
+              </p>
+              <p className="mt-4 font-mono text-xs text-ink-faint">
+                npm · cargo · homebrew · scoop · winget
+              </p>
+            </div>
             <div className="min-w-0">
-              <h2 className="mb-3 text-sm font-semibold text-ink">Install</h2>
               <CodeBlock
                 title="npm — no Rust toolchain needed"
                 code={`npm install -g ctxai-cli
@@ -168,7 +193,6 @@ ctx --version`}
               />
             </div>
             <div className="min-w-0">
-              <h2 className="mb-3 text-sm font-semibold text-ink">Or via cargo</h2>
               <CodeBlock
                 title="cargo — from source"
                 code={`cargo install ctxai-cli --locked
@@ -179,12 +203,17 @@ ctx --version`}
         </section>
 
         {/* ---------------- WHY ---------------- */}
-        <section className="px-4 py-16 sm:px-6 sm:py-24">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              Agents guess. ctx doesn&apos;t.
-            </h2>
-            <div className="mt-6 space-y-4 text-base leading-7 text-ink-soft">
+        <section className="ctx-container py-20 sm:py-28">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+            <div className="lg:sticky lg:top-24 lg:self-start">
+              <p className="font-mono text-xs uppercase tracking-widest text-accent-deep">
+                Why ctx
+              </p>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-ink sm:text-4xl lg:text-5xl">
+                Agents guess. ctx doesn&apos;t.
+              </h2>
+            </div>
+            <div className="space-y-5 text-base leading-7 text-ink-soft sm:text-lg sm:leading-8">
               <p>
                 Coding agents fail at codebase navigation in predictable ways.
                 They hallucinate file paths, dump entire directories into
@@ -202,14 +231,22 @@ ctx --version`}
         </section>
 
         {/* ---------------- FEATURES ---------------- */}
-        <section className="border-y border-line bg-surface px-4 py-16 sm:px-6 sm:py-24">
-          <div className="mx-auto max-w-5xl">
-            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              What it does
-            </h2>
+        <section className="border-y border-line bg-surface">
+          <div className="ctx-container py-20 sm:py-28">
+            <div className="mb-12 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                What it does
+              </h2>
+              <p className="font-mono text-xs text-ink-faint">
+                nine capabilities · zero embeddings
+              </p>
+            </div>
             <div className="grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((f) => (
-                <div key={f.title} className="bg-surface p-6">
+                <div
+                  key={f.title}
+                  className="bg-surface p-6 transition-colors hover:bg-paper/70"
+                >
                   <h3 className="mb-2 text-base font-semibold text-ink">{f.title}</h3>
                   <p className="text-sm leading-6 text-ink-soft">{f.body}</p>
                 </div>
@@ -219,36 +256,41 @@ ctx --version`}
         </section>
 
         {/* ---------------- LANGUAGES ---------------- */}
-        <section className="px-4 py-16 sm:px-6 sm:py-24">
-          <div className="mx-auto max-w-5xl">
-            <h2 className="mb-3 text-center text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+        <section className="ctx-container py-20 sm:py-28">
+          <div className="mb-12 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
               Supported languages
             </h2>
-            <p className="mb-10 text-center text-ink-soft">
-              Parsed with tree-sitter, not regex.
+            <p className="font-mono text-xs text-ink-faint">
+              parsed with tree-sitter, not regex
             </p>
-            <div className="grid gap-4 md:grid-cols-2">
-              {LANGS.map((l) => (
-                <div key={l.name} className="rounded-lg border border-line bg-surface p-6">
-                  <h3 className="mb-1.5 text-base font-semibold text-ink">{l.name}</h3>
-                  <p className="text-sm text-ink-soft">{l.detail}</p>
-                  <p className="mt-2 font-mono text-xs text-ink-faint">{l.note}</p>
-                </div>
-              ))}
-            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {LANGS.map((l) => (
+              <div
+                key={l.name}
+                className="rounded-lg border border-line bg-surface p-6 transition-colors hover:border-ink/20"
+              >
+                <h3 className="mb-1.5 text-base font-semibold text-ink">{l.name}</h3>
+                <p className="text-sm text-ink-soft">{l.detail}</p>
+                <p className="mt-2 font-mono text-xs text-ink-faint">{l.note}</p>
+              </div>
+            ))}
           </div>
         </section>
 
         {/* ---------------- COMMANDS ---------------- */}
-        <section className="border-y border-line bg-surface px-4 py-16 sm:px-6 sm:py-24">
-          <div className="mx-auto max-w-5xl">
-            <h2 className="mb-3 text-center text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              Commands
-            </h2>
-            <p className="mb-10 text-center text-ink-soft">
-              One tool, every question.
-            </p>
-            <div className="mx-auto mb-10 max-w-2xl">
+        <section className="border-y border-line bg-surface">
+          <div className="ctx-container py-20 sm:py-28">
+            <div className="mb-12 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                Commands
+              </h2>
+              <p className="font-mono text-xs text-ink-faint">
+                one tool, every question
+              </p>
+            </div>
+            <div className="mx-auto mb-12 max-w-2xl">
               <video
                 className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
                 autoPlay
@@ -298,7 +340,7 @@ REMOVED  create_avatar           src/user/avatar.rs
 MODIFIED UserService.updateName  src/user/service.rs`}
               />
             </div>
-            <p className="mt-8 text-center">
+            <p className="mt-10 text-center">
               <Link href="/docs/commands" className="text-sm font-semibold text-accent-deep hover:underline">
                 Full command reference →
               </Link>
@@ -307,10 +349,13 @@ MODIFIED UserService.updateName  src/user/service.rs`}
         </section>
 
         {/* ---------------- MCP ---------------- */}
-        <section className="px-4 py-16 sm:px-6 sm:py-24">
-          <div className="mx-auto grid max-w-5xl items-start gap-10 lg:grid-cols-2">
+        <section className="ctx-container py-20 sm:py-28">
+          <div className="grid items-start gap-10 lg:grid-cols-2">
             <div className="min-w-0">
-              <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              <p className="font-mono text-xs uppercase tracking-widest text-accent-deep">
+                MCP over stdio
+              </p>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 Plug into any MCP client
               </h2>
               <p className="mt-5 leading-7 text-ink-soft">
@@ -360,48 +405,50 @@ MODIFIED UserService.updateName  src/user/service.rs`}
         </section>
 
         {/* ---------------- CLOSING ---------------- */}
-        <section className="border-t border-line bg-surface px-4 py-16 sm:px-6 sm:py-20">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              Try it on your own repository
-            </h2>
-            <div className="mt-8 text-left">
-              <CodeBlock
-                title="get started"
-                code={`ctx init
+        <section className="border-t border-line bg-surface">
+          <div className="ctx-container py-20 sm:py-28">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="font-mono text-xs uppercase tracking-widest text-accent-deep">
+                Get started
+              </p>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                Try it on your own repository
+              </h2>
+              <div className="mt-8 text-left">
+                <CodeBlock
+                  title="get started"
+                  code={`ctx init
 ctx doctor        # verify the index is healthy
 ctx context "what does the payment module do?"
 ctx mcp           # expose the code graph to your agent`}
-              />
-            </div>
-            <div className="mx-auto mt-8 max-w-md">
-              <video
-                className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                aria-label="ctx release teaser"
-              >
-                <source src="/s_punchy_launch_teaser_Black.mp4" type="video/mp4" />
-              </video>
-            </div>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/docs"
-                className="inline-flex w-full items-center justify-center rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 sm:w-auto"
-              >
-                Documentation
-              </Link>
-              <a
-                href="https://github.com/halloffame12/CTX/releases"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-full items-center justify-center rounded-lg border border-line px-6 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink/30 sm:w-auto"
-              >
-                Download binaries
-              </a>
+                />
+              </div>
+              <div className="mx-auto mt-8 max-w-md">
+                <video
+                  className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-label="ctx release teaser"
+                >
+                  <source src="/s_punchy_launch_teaser_Black.mp4" type="video/mp4" />
+                </video>
+              </div>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link href="/docs" className={`${PRIMARY_BTN} w-full sm:w-auto`}>
+                  Documentation
+                </Link>
+                <a
+                  href="https://github.com/halloffame12/CTX/releases"
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`${SECONDARY_BTN} w-full sm:w-auto`}
+                >
+                  Download binaries
+                </a>
+              </div>
             </div>
           </div>
         </section>

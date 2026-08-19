@@ -17,12 +17,23 @@ html {
 }
 
 body {
-  background: var(--color-paper);
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(55rem 36rem at 50% -8rem, rgba(13, 148, 136, 0.09), transparent 70%),
+    linear-gradient(rgba(28, 25, 23, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 25, 23, 0.035) 1px, transparent 1px);
+  background-size: auto, 5rem 5rem, 5rem 5rem;
   color: var(--color-ink);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.6;
+}
+
+/* Unified fluid page container — one grid for nav, hero, sections, footer */
+@utility ctx-container {
+  width: min(100% - 2rem, 84rem);
+  margin-inline: auto;
 }
 
 /* Headings anchored under the sticky header */

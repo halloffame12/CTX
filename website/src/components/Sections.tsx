@@ -9,10 +9,10 @@ export function CodeBlock({
   code: string;
 }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
       {title && (
-        <div className="flex items-center justify-between border-b border-line px-4 py-2">
-          <span className="font-mono text-xs text-ink-faint">{title}</span>
+        <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2">
+          <span className="truncate font-mono text-xs text-ink-faint">{title}</span>
           <CopyButton text={code} />
         </div>
       )}

@@ -28,15 +28,18 @@ export default function Navbar() {
           : "border-transparent bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:h-16 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-mono text-lg font-semibold text-ink">
+      <nav className="ctx-container flex h-14 items-center justify-between sm:h-16">
+        <Link href="/" className="flex items-center gap-2.5 font-mono text-lg font-semibold text-ink">
           <span className="grid size-7 place-items-center rounded bg-accent text-sm font-bold text-white">
             &gt;_
           </span>
           <span>ctx</span>
+          <span className="hidden rounded border border-line bg-paper px-1.5 py-0.5 font-mono text-[10px] font-normal text-ink-faint min-[420px]:inline-block">
+            v0.1.2
+          </span>
         </Link>
 
-        <div className="hidden items-center gap-7 text-sm text-ink-soft md:flex">
+        <div className="hidden items-center gap-8 text-sm text-ink-soft md:flex">
           {LINKS.map((l) =>
             l.href.startsWith("http") ? (
               <a
@@ -44,7 +47,7 @@ export default function Navbar() {
                 href={l.href}
                 target="_blank"
                 rel="noreferrer"
-                className="transition-colors hover:text-ink"
+                className="relative py-1 text-ink-soft transition-colors hover:text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-ink after:transition-transform after:duration-200 hover:after:scale-x-100"
               >
                 {l.label}
               </a>
@@ -52,7 +55,7 @@ export default function Navbar() {
               <Link
                 key={l.label}
                 href={l.href}
-                className="transition-colors hover:text-ink"
+                className="relative py-1 text-ink-soft transition-colors hover:text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-ink after:transition-transform after:duration-200 hover:after:scale-x-100"
               >
                 {l.label}
               </Link>
@@ -64,7 +67,7 @@ export default function Navbar() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="grid size-11 shrink-0 place-items-center rounded-lg border border-line text-ink md:hidden"
+          className="grid size-11 shrink-0 place-items-center rounded-lg border border-line text-ink transition-colors hover:bg-line/50 active:scale-[0.97] md:hidden"
         >
           <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             {open ? (
