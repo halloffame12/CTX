@@ -9,6 +9,7 @@ const STATIC_PAGES = [
   { path: "/docs", priority: 0.9, changeFrequency: "monthly" as const },
   { path: "/docs/install", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/docs/commands", priority: 0.8, changeFrequency: "monthly" as const },
+  { path: "/docs/config", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/docs/mcp", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/docs/architecture", priority: 0.7, changeFrequency: "yearly" as const },
   { path: "/docs/faq", priority: 0.7, changeFrequency: "monthly" as const },

@@ -137,7 +137,7 @@ export default function Home() {
               </div>
 
               <p className="mt-8 font-mono text-xs text-ink-faint">
-                # 1,204 files indexed in ~1 second. Re-index: 34 ms.
+                Measured on this project&apos;s own repo: 75 files · 873 symbols · 452 edges indexed in ~90 ms.
               </p>
             </div>
 
