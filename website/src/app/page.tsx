@@ -3,6 +3,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VideoPlayer from "@/components/VideoPlayer";
+import GraphCanvas from "@/components/GraphCanvas";
 import { CodeBlock } from "@/components/Sections";
 
 export const metadata: Metadata = {
@@ -150,35 +151,61 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Navbar />
+      <Navbar dark />
       <main>
         {/* ---------------- HERO ---------------- */}
-        <section id="film" className="ctx-hero-grid border-b border-line">
-          <div className="ctx-container grid gap-14 pt-16 pb-16 sm:pt-24 sm:pb-24 lg:grid-cols-[minmax(0,11fr)_minmax(0,10fr)] lg:items-center lg:gap-16">
+        <section
+          id="film"
+          className="relative overflow-hidden bg-ink text-white"
+        >
+          <video
+            className="absolute inset-0 h-full w-full object-cover opacity-40"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden
+          >
+            <source src="/A_second_cinematic_product.mp4" type="video/mp4" />
+          </video>
+          <div
+            className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_0%,rgba(13,148,136,0.28),transparent_60%),linear-gradient(180deg,rgba(28,25,23,0.94)_0%,rgba(28,25,23,0.8)_45%,rgba(28,25,23,0.94)_100%)]"
+            aria-hidden
+          />
+          <GraphCanvas />
+
+          <div className="ctx-container relative grid gap-16 py-20 sm:py-28 lg:grid-cols-[minmax(0,11fr)_minmax(0,10fr)] lg:items-center lg:gap-16">
             <div className="ctx-rise ctx-rise-1">
-              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 font-mono text-xs text-ink-soft">
-                <span className="size-1.5 rounded-full bg-accent" />
-                v0.1.2 · open source · MIT
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 font-mono text-xs text-white/70 backdrop-blur">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-accent" />
+                </span>
+                v0.1.2 · open source · MIT · no telemetry
               </p>
-              <h1 className="mt-6 text-[clamp(2.25rem,5vw+0.5rem,4.5rem)] font-bold leading-[1.05] tracking-tight text-ink">
+              <h1 className="mt-6 text-[clamp(2.25rem,5vw+0.5rem,4.5rem)] font-bold leading-[1.05] tracking-tight">
                 AI agents hallucinate code.{" "}
-                <span className="text-accent-deep">ctx</span> gives them the real
+                <span className="ctx-shimmer-text">ctx</span> gives them the real
                 thing.
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-ink-soft sm:text-xl sm:leading-8">
-                <span className="font-mono text-accent-deep">ctx</span> indexes
-                your repository into a local, deterministic code graph and answers
-                the questions agents actually ask — where does this symbol live,
-                what would break if I change it, which files does this task need?
-                No embeddings. No API calls. Nothing leaves your machine.
+              <p className="mt-6 max-w-xl text-lg leading-8 text-white/70 sm:text-xl sm:leading-8">
+                <span className="font-mono text-teal-300">ctx</span> indexes your
+                repository into a local, deterministic code graph and answers the
+                questions agents actually ask — where does this symbol live, what
+                would break if I change it, which files does this task need? No
+                embeddings. No API calls. Nothing leaves your machine.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link href="/docs" className={`${PRIMARY_BTN} w-full sm:w-auto`}>
+                <Link
+                  href="/docs"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-ink transition-all hover:bg-teal-50 hover:shadow-[0_0_28px_rgba(45,212,191,0.35)] active:scale-[0.98] sm:w-auto"
+                >
                   Get started free
                 </Link>
                 <a
                   href="#film"
-                  className={`${SECONDARY_BTN} w-full sm:w-auto`}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:border-teal-300/50 hover:bg-white/10 active:scale-[0.98] sm:w-auto"
                 >
                   ▶ Watch the 5-min film
                 </a>
@@ -186,32 +213,39 @@ export default function Home() {
                   href="https://github.com/halloffame12/CTX"
                   target="_blank"
                   rel="noreferrer"
-                  className={`${SECONDARY_BTN} w-full sm:w-auto`}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:border-teal-300/50 hover:bg-white/10 active:scale-[0.98] sm:w-auto"
                 >
                   View on GitHub
                 </a>
               </div>
 
-              <dl className="mt-12 grid max-w-2xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
+              <dl className="mt-12 grid max-w-2xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 backdrop-blur sm:grid-cols-4">
                 {HERO_STATS.map((s) => (
-                  <div key={s.label} className="bg-paper p-4">
-                    <dt className="font-mono text-[11px] text-ink-faint">{s.label}</dt>
-                    <dd className="mt-1 text-2xl font-semibold text-ink">{s.value}</dd>
+                  <div key={s.label} className="bg-ink/70 p-4">
+                    <dt className="font-mono text-[11px] text-white/45">{s.label}</dt>
+                    <dd className="mt-1 text-2xl font-semibold text-white">{s.value}</dd>
                   </div>
                 ))}
               </dl>
-              <p className="mt-3 font-mono text-xs text-ink-faint">
+              <p className="mt-3 font-mono text-xs text-white/40">
                 measured on ctx&apos;s own repository
               </p>
             </div>
 
-            <div className="ctx-rise ctx-rise-2 lg:sticky lg:top-24">
-              <VideoPlayer
-                src="/Context_Architecture__Eliminating_AI_Hallucinations.mp4"
-                title="Eliminating AI Hallucinations"
-                caption="The ctx architecture — a 5-minute deep dive into why agents guess, and how a deterministic code graph stops them."
-                eyebrow="The film · 5 min"
-              />
+            <div className="ctx-rise ctx-rise-2">
+              <div className="relative">
+                <div className="ctx-pulse-ring absolute -inset-1 rounded-2xl" aria-hidden />
+                <p className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-teal-300">
+                  <span className="inline-block size-1.5 rounded-full bg-teal-300" />
+                  the film · 5 min
+                </p>
+                <VideoPlayer
+                  src="/Context_Architecture__Eliminating_AI_Hallucinations.mp4"
+                  title="Eliminating AI Hallucinations"
+                  caption="The ctx architecture — a 5-minute deep dive into why agents guess, and how a deterministic code graph stops them."
+                  eyebrow="The film · 5 min"
+                />
+              </div>
             </div>
           </div>
         </section>
