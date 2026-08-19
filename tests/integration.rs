@@ -300,13 +300,21 @@ fn ts_symbol_references_are_symbol_level_not_file_level() {
     // `createUser` from models.ts — NOT `User` — so User must not be
     // referenced from app.ts.
     let root = temp_root("ts_symref");
-    write(&root, "src/models.ts", "export interface User { id: number }\nexport function createUser() {}\n");
+    write(
+        &root,
+        "src/models.ts",
+        "export interface User { id: number }\nexport function createUser() {}\n",
+    );
     write(
         &root,
         "src/app.ts",
         "import { createUser } from './models';\nconsole.log(createUser());\n",
     );
-    write(&root, "src/other.ts", "import { User } from './models';\nconst u: User = { id: 1 };\n");
+    write(
+        &root,
+        "src/other.ts",
+        "import { User } from './models';\nconst u: User = { id: 1 };\n",
+    );
     let config = Config::default();
     run_index(&root, &config).unwrap();
     let db = ctx::graph::database::Database::open(&root).unwrap();
@@ -383,9 +391,7 @@ fn context_puts_direct_hits_first_and_caps_follow_only_files() {
             // Leaves only import from api.ts — their own symbols must not
             // reference the task keywords, so they are genuinely follow-only
             // (no direct signal) and the follow cap is exercised.
-            &format!(
-                "import {{ ApiClient }} from '../core/api';\nexport const use{i} = 'x';\n"
-            ),
+            &format!("import {{ ApiClient }} from '../core/api';\nexport const use{i} = 'x';\n"),
         );
     }
     let config = Config::default();
@@ -400,10 +406,7 @@ fn context_puts_direct_hits_first_and_caps_follow_only_files() {
         Some(&"src/core/api.ts"),
         "direct hit must be selected first: {paths:?}"
     );
-    let leaves = paths
-        .iter()
-        .filter(|p| p.starts_with("src/leaf"))
-        .count();
+    let leaves = paths.iter().filter(|p| p.starts_with("src/leaf")).count();
     assert!(
         leaves <= 6,
         "follow-only leaves capped at 6, got {leaves}: {paths:?}"
@@ -420,7 +423,8 @@ fn changed_symbols_reports_only_actual_diffs() {
     );
     let git = ctx::git::GitRepo { root: root.clone() };
     git.run(&["init", "-q"]).unwrap();
-    git.run(&["config", "user.email", "qa@example.com"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
     git.run(&["config", "user.name", "QA"]).unwrap();
     git.run(&["add", "-A"]).unwrap();
     git.run(&["commit", "-qm", "initial"]).unwrap();
@@ -435,16 +439,16 @@ fn changed_symbols_reports_only_actual_diffs() {
     let db = ctx::graph::database::Database::open(&root).unwrap();
     let report = ctx::git::changed::changed_symbols(&git, &db, None).unwrap();
     let names: Vec<&str> = report.symbols.iter().map(|s| s.name.as_str()).collect();
-    assert!(
-        names.contains(&"edit"),
-        "edited symbol listed: {names:?}"
-    );
+    assert!(names.contains(&"edit"), "edited symbol listed: {names:?}");
     assert!(
         !names.contains(&"keep"),
         "unchanged symbol must not be listed: {names:?}"
     );
     assert!(
-        report.symbols.iter().any(|s| s.name == "edit" && s.status == "Modified"),
+        report
+            .symbols
+            .iter()
+            .any(|s| s.name == "edit" && s.status == "Modified"),
         "edit flagged as Modified: {:?}",
         report.symbols
     );
@@ -1016,7 +1020,9 @@ fn context_follows_integration_point_dependents_of_oversized_hub() {
         write(
             &root,
             &format!("web/src/components/c{i}.tsx"),
-            &format!("import {{ AuthProvider }} from '../context/AuthContext';\nexport const C{i} = AuthProvider;\n"),
+            &format!(
+                "import {{ AuthProvider }} from '../context/AuthContext';\nexport const C{i} = AuthProvider;\n"
+            ),
         );
     }
     for i in 0..60 {
@@ -1117,7 +1123,9 @@ fn context_does_not_flood_hub_with_generic_keyword() {
         write(
             &root,
             &format!("web/src/components/c{i}.tsx"),
-            &format!("import {{ AuthProvider }} from '../context/AuthContext';\nexport const C{i} = AuthProvider;\n"),
+            &format!(
+                "import {{ AuthProvider }} from '../context/AuthContext';\nexport const C{i} = AuthProvider;\n"
+            ),
         );
     }
     for i in 0..30 {
@@ -1176,7 +1184,10 @@ fn context_file_included_via_symbol_match_keeps_reasons() {
     assert!(
         file.is_some(),
         "symbol-matched file must be included: {:?}",
-        pkg.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>()
+        pkg.files
+            .iter()
+            .map(|f| f.path.as_str())
+            .collect::<Vec<_>>()
     );
     let reasons = file.unwrap().reasons.join("; ");
     assert!(
