@@ -5,6 +5,7 @@ import Link from "next/link";
 
 const LINKS = [
   { href: "/docs", label: "Docs" },
+  { href: "/#film", label: "The film" },
   { href: "/#install", label: "Install" },
   { href: "https://github.com/halloffame12/CTX", label: "GitHub" },
 ];

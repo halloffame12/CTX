@@ -59,6 +59,46 @@ body {
   }
 }
 
+/* Hero texture: faint blueprint grid + top glow */
+.ctx-hero-grid {
+  background-image:
+    radial-gradient(70% 60% at 50% 0%, rgba(13, 148, 136, 0.08), transparent 60%),
+    linear-gradient(rgba(28, 23, 20, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 23, 20, 0.035) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    44px 44px,
+    44px 44px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ctx-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .ctx-rise {
+    animation: ctx-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .ctx-rise-1 {
+    animation-delay: 0.05s;
+  }
+  .ctx-rise-2 {
+    animation-delay: 0.12s;
+  }
+  .ctx-rise-3 {
+    animation-delay: 0.19s;
+  }
+  .ctx-rise-4 {
+    animation-delay: 0.26s;
+  }
+}
+
 ::selection {
   background: rgba(13, 148, 136, 0.18);
 }
