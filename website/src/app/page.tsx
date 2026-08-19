@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import TerminalDemo from "@/components/TerminalDemo";
 import { CodeBlock } from "@/components/Sections";
 
 export const metadata: Metadata = {
@@ -107,8 +106,8 @@ export default function Home() {
       <main>
         {/* ---------------- HERO ---------------- */}
         <section className="px-4 pt-12 pb-10 sm:px-6 sm:pt-20 sm:pb-12">
-          <div className="mx-auto grid max-w-5xl items-center gap-10 sm:gap-12 lg:grid-cols-[1fr_1fr]">
-            <div>
+          <div className="mx-auto max-w-5xl">
+            <div className="max-w-2xl">
               <h1 className="text-[clamp(2rem,5vw+0.5rem,2.25rem)] font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl sm:leading-[1.1]">
                 Codebase context for AI coding agents
               </h1>
@@ -141,8 +140,18 @@ export default function Home() {
               </p>
             </div>
 
-            <div>
-              <TerminalDemo />
+            <div className="mt-10 sm:mt-12">
+              <video
+                className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                aria-label="Cinematic product reveal for ctx"
+              >
+                <source src="/A_second_cinematic_product.mp4" type="video/mp4" />
+              </video>
             </div>
           </div>
         </section>
@@ -239,6 +248,19 @@ ctx --version`}
             <p className="mb-10 text-center text-ink-soft">
               One tool, every question.
             </p>
+            <div className="mx-auto mb-10 max-w-2xl">
+              <video
+                className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="Tutorial showing ctx install and first command"
+              >
+                <source src="/s_screen_style_tutorial_Spl.mp4" type="video/mp4" />
+              </video>
+            </div>
             <div className="grid gap-5 md:grid-cols-2">
               <CodeBlock
                 title="ctx context"
@@ -351,6 +373,19 @@ ctx doctor        # verify the index is healthy
 ctx context "what does the payment module do?"
 ctx mcp           # expose the code graph to your agent`}
               />
+            </div>
+            <div className="mx-auto mt-8 max-w-md">
+              <video
+                className="aspect-video w-full overflow-hidden rounded-lg border border-line bg-ink shadow-sm"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="ctx release teaser"
+              >
+                <source src="/s_punchy_launch_teaser_Black.mp4" type="video/mp4" />
+              </video>
             </div>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
