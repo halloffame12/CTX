@@ -17,16 +17,16 @@ class Ctx < Formula
 
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-aarch64"
-    sha256 "63039ed5e9fb352a5dc4bd082101fb76089661aac2b6a789025febe7cbf1e665"
+    sha256 "24f81af4dcdd63b31ed58fefa5a79e08a560aed437a3a5353a9de1193e3266ed"
   elsif OS.mac? && Hardware::CPU.intel?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-x86_64"
-    sha256 "d33153bfc2dc5f6d42b46ced0154cb4567909f171c8931660b66b2a53901bbc5"
+    sha256 "fa82877423814c3e275b26f5cb06127efd63fe527d278b5762a233ffda5b7565"
   elsif OS.linux? && Hardware::CPU.arm?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-aarch64"
-    sha256 "07b247d3599c70b00cccb4786e7f2e5ed183c7f2ef87d4497cb83968d9e9c317"
+    sha256 "3b64775a1d678175adb263bc876948a5bd3333002e263602efb2d0b13998f8de"
   elsif OS.linux? && Hardware::CPU.intel?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-x86_64"
-    sha256 "b4d3d9817e6f52893ebf509b978b4b52f6651f1ed11f002c40f1ffcf7495d307"
+    sha256 "d38b88d385be8d8fe91fee172b3b68e94699f6bb1e1f4723fcbd1c55bb759d99"
   else
     odie "ctx: unsupported platform — only macOS (Intel/ARM) and Linux (Intel/ARM) are supported"
   end
