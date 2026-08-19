@@ -14,6 +14,9 @@ use crate::lang::LanguageId;
 pub struct ChangedFile {
     pub path: String,
     pub status: String,
+    /// Source path for renames/copies (absent for non-rename changes).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub old_path: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -22,6 +25,8 @@ pub struct ChangedSymbol {
     pub kind: String,
     pub file: String,
     pub line: u32,
+    /// How the symbol changed relative to the base: Added | Modified | Removed.
+    pub status: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -33,32 +38,56 @@ pub struct ChangedReport {
 }
 
 /// Files changed relative to `since` (or the working tree when None).
-pub fn changed_files(repo: &GitRepo, since: Option<&str>) -> CtxResult<Vec<ChangedFile>> {
-    let mut out: BTreeMap<String, String> = BTreeMap::new();
+///
+/// `include_untracked` controls whether untracked files (visible to `git
+/// status` but not `git diff`) are reported. Diff semantics must exclude
+/// them so `ctx diff` matches `git diff`.
+pub fn changed_files(
+    repo: &GitRepo,
+    since: Option<&str>,
+    include_untracked: bool,
+) -> CtxResult<Vec<ChangedFile>> {
+    let mut out: BTreeMap<String, (String, Option<String>)> = BTreeMap::new();
     match since {
         Some(rev) => {
             let raw = repo.run(&["diff", "--name-status", rev])?;
             for line in raw.lines() {
-                let mut parts = line.splitn(3, '\t');
-                let status = parts.next().unwrap_or("M");
-                let path = parts.last().unwrap_or("").trim().to_string();
-                if path.is_empty() {
+                let fields: Vec<&str> = line.split('\t').collect();
+                if fields.is_empty() {
                     continue;
                 }
+                let status = fields[0];
                 let code = match status.chars().next() {
                     Some('A') => "A",
                     Some('D') => "D",
                     Some('R') | Some('C') => "R",
                     _ => "M",
                 };
-                out.insert(path, code.to_string());
+                let is_rename = code == "R";
+                let path = fields.last().unwrap_or(&"").trim().to_string();
+                if path.is_empty() {
+                    continue;
+                }
+                let old_path = if is_rename {
+                    // `R100\told\tnew` — middle field is the source path.
+                    fields
+                        .get(fields.len().saturating_sub(2))
+                        .map(|p| p.trim().to_string())
+                        .filter(|p| !p.is_empty())
+                } else {
+                    None
+                };
+                out.insert(path, (code.to_string(), old_path));
             }
-            // untracked files are invisible to diff
-            if let Ok(u) = repo.run(&["ls-files", "--others", "--exclude-standard"]) {
-                for line in u.lines() {
-                    let p = line.trim().to_string();
-                    if !p.is_empty() {
-                        out.entry(p).or_insert_with(|| "A".to_string());
+            // untracked files are invisible to diff but visible to status;
+            // include them only for status-like reporting.
+            if include_untracked {
+                if let Ok(u) = repo.run(&["ls-files", "--others", "--exclude-standard"]) {
+                    for line in u.lines() {
+                        let p = line.trim().to_string();
+                        if !p.is_empty() {
+                            out.entry(p).or_insert_with(|| ("A".to_string(), None));
+                        }
                     }
                 }
             }
@@ -70,8 +99,19 @@ pub fn changed_files(repo: &GitRepo, since: Option<&str>) -> CtxResult<Vec<Chang
                     continue;
                 }
                 let prefix = &line[..2];
-                let path = line[3..].trim_end().to_string();
-                let path = path.split(" -> ").last().unwrap_or(&path).to_string();
+                let raw_path = line[3..].trim_end().to_string();
+                // porcelain v1 shows renames as `R  old -> new`; keep both.
+                let old_path = raw_path
+                    .split(" -> ")
+                    .next()
+                    .map(|p| p.trim().to_string())
+                    .filter(|p| !p.is_empty() && *p != raw_path);
+                let path = raw_path
+                    .split(" -> ")
+                    .last()
+                    .unwrap_or(&raw_path)
+                    .trim()
+                    .to_string();
                 // porcelain v1 is a two-column code: X=index, Y=worktree.
                 let (x, y) = (
                     prefix.chars().next().unwrap_or(' '),
@@ -100,7 +140,7 @@ pub fn changed_files(repo: &GitRepo, since: Option<&str>) -> CtxResult<Vec<Chang
                         "M"
                     }
                 };
-                out.insert(path, code.to_string());
+                out.insert(path, (code.to_string(), old_path));
             }
         }
     }
@@ -110,31 +150,43 @@ pub fn changed_files(repo: &GitRepo, since: Option<&str>) -> CtxResult<Vec<Chang
             let p = path.as_str();
             p != ".ctx" && !p.starts_with(".ctx/") && p != ".git" && !p.starts_with(".git/")
         })
-        .map(|(path, status)| ChangedFile { path, status })
+        .map(|(path, (status, old_path))| ChangedFile {
+            path,
+            status,
+            old_path,
+        })
         .collect())
 }
 
-/// Map changed files to symbols in the graph.
+/// Map changed files to the symbols that actually changed (added, modified or
+/// removed) between the base ref and the working tree, reusing the semantic
+/// symbol diff. The graph `db` is not needed here — the diff parses both sides
+/// directly — but is kept in the signature for call-site compatibility.
 pub fn changed_symbols(
-    repo: &GitRepo,
-    db: &Database,
+    _repo: &GitRepo,
+    _db: &Database,
     since: Option<&str>,
 ) -> CtxResult<ChangedReport> {
-    let files = changed_files(repo, since)?;
+    let sd = crate::git::diff::symbol_diff(_repo, since, None, None)?;
+    let files: Vec<ChangedFile> = sd
+        .files
+        .iter()
+        .map(|f| ChangedFile {
+            path: f.path.clone(),
+            status: f.status.clone(),
+            old_path: None,
+        })
+        .collect();
     let mut symbols: Vec<ChangedSymbol> = Vec::new();
-    for cf in &files {
-        if cf.status == "D" {
-            continue;
-        }
-        if let Some(file) = db.file_by_path(&cf.path)? {
-            for s in db.symbols_for_file(file.id)? {
-                symbols.push(ChangedSymbol {
-                    name: s.name,
-                    kind: s.kind,
-                    file: cf.path.clone(),
-                    line: s.start_line,
-                });
-            }
+    for f in &sd.files {
+        for s in &f.symbols {
+            symbols.push(ChangedSymbol {
+                name: s.name.clone(),
+                kind: s.kind.clone(),
+                file: f.path.clone(),
+                line: s.line,
+                status: s.status.clone(),
+            });
         }
     }
     symbols.sort_by(|a, b| a.file.cmp(&b.file).then(a.line.cmp(&b.line)));
@@ -148,7 +200,7 @@ pub fn changed_symbols(
 
 /// Index changed files into the graph so queries reflect current disk state.
 pub fn sync_changed(repo: &GitRepo, db: &mut Database, config: &Config) -> CtxResult<()> {
-    let files = changed_files(repo, None)?;
+    let files = changed_files(repo, None, true)?;
     for cf in &files {
         let rel = crate::indexing::scanner::normalize(&cf.path);
         let Some(lang) = LanguageId::from_extension(

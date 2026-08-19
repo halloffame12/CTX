@@ -14,6 +14,7 @@ pub struct SymbolDiffEntry {
     pub name: String,
     pub kind: String,
     pub file: String,
+    pub line: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
 }
@@ -42,14 +43,28 @@ pub fn symbol_diff(
     head: Option<&str>,
     test_mode_root: Option<&Path>,
 ) -> CtxResult<SymbolDiff> {
-    let base = base.unwrap_or("HEAD");
+    // Single-ref diff (base..worktree): resolve the base to its merge-base
+    // with HEAD so the diff shows only the current branch's changes, not
+    // everything the base ref did since the fork (documented behavior).
+    // The label keeps what the user typed; git ops use the resolved commit.
+    let (base_label, base) = match (base, head) {
+        (Some(b), None) => {
+            let label = b.to_string();
+            let resolved = merge_base(repo, b, "HEAD")?.unwrap_or_else(|| b.to_string());
+            (label, resolved)
+        }
+        (b, _) => {
+            let label = b.unwrap_or("HEAD").to_string();
+            (label.clone(), label)
+        }
+    };
     // Two-ref diff (base..head): both sides come from git history.
     // Single-ref diff (base..worktree): the "new" side is the working tree.
     let (head_label, files, resolve_head) = match head {
-        Some(h) => (h.to_string(), diff_between(repo, base, h)?, true),
+        Some(h) => (h.to_string(), diff_between(repo, &base, h)?, true),
         None => (
             "worktree".to_string(),
-            changed_files(repo, Some(base))?,
+            changed_files(repo, Some(&base), false)?,
             false,
         ),
     };
@@ -72,7 +87,10 @@ pub fn symbol_diff(
             continue;
         };
         let old_src = if cf.status != "A" {
-            repo.show(base, rel)?
+            // For a rename the source path is where the symbols lived at the
+            // base; the new path does not exist there yet.
+            let old_path = cf.old_path.as_deref().unwrap_or(rel);
+            repo.show(&base, old_path)?
         } else {
             String::new()
         };
@@ -84,7 +102,7 @@ pub fn symbol_diff(
         } else {
             // working tree
             std::fs::read_to_string(root.join(rel))
-                .unwrap_or_else(|_| repo.show(base, rel).unwrap_or_default())
+                .unwrap_or_else(|_| repo.show(&base, rel).unwrap_or_default())
         };
 
         let old_syms = symbols_from(&old_src, lang, root, rel);
@@ -114,7 +132,7 @@ pub fn symbol_diff(
         large_changes = true;
     }
     Ok(SymbolDiff {
-        base: base.to_string(),
+        base: base_label,
         head: head_label,
         files: out,
         added,
@@ -122,6 +140,17 @@ pub fn symbol_diff(
         removed,
         large_changes,
     })
+}
+
+/// Best common ancestor of two refs; None when histories are unrelated.
+fn merge_base(repo: &GitRepo, a: &str, b: &str) -> CtxResult<Option<String>> {
+    match repo.run(&["merge-base", a, b]) {
+        Ok(mb) => {
+            let t = mb.trim().to_string();
+            if t.is_empty() { Ok(None) } else { Ok(Some(t)) }
+        }
+        Err(_) => Ok(None),
+    }
 }
 
 /// Files changed between two explicit refs (base..head), rename-aware.
@@ -132,26 +161,44 @@ fn diff_between(
 ) -> CtxResult<Vec<crate::git::changed::ChangedFile>> {
     use std::collections::BTreeMap;
     let raw = repo.run(&["diff", "--name-status", base, head])?;
-    let mut out: BTreeMap<String, String> = BTreeMap::new();
+    let mut out: BTreeMap<String, (String, Option<String>)> = BTreeMap::new();
     for line in raw.lines() {
-        let mut parts = line.splitn(3, '\t');
-        let status = parts.next().unwrap_or("M");
-        let path = parts.last().unwrap_or("").trim().to_string();
-        if path.is_empty() {
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.is_empty() {
             continue;
         }
+        let status = fields[0];
         let code = match status.chars().next() {
             Some('A') => "A",
             Some('D') => "D",
             Some('R') | Some('C') => "R",
             _ => "M",
         };
-        out.insert(path, code.to_string());
+        let is_rename = code == "R";
+        let path = fields.last().unwrap_or(&"").trim().to_string();
+        if path.is_empty() {
+            continue;
+        }
+        let old_path = if is_rename {
+            fields
+                .get(fields.len().saturating_sub(2))
+                .map(|p| p.trim().to_string())
+                .filter(|p| !p.is_empty())
+        } else {
+            None
+        };
+        out.insert(path, (code.to_string(), old_path));
     }
     Ok(out
         .into_iter()
         .filter(|(path, _)| path != ".ctx" && !path.starts_with(".ctx/"))
-        .map(|(path, status)| crate::git::changed::ChangedFile { path, status })
+        .map(
+            |(path, (status, old_path))| crate::git::changed::ChangedFile {
+                path,
+                status,
+                old_path,
+            },
+        )
         .collect())
 }
 
@@ -189,6 +236,7 @@ fn diff_symbols(rel: &str, old: &[Symbol], new: &[Symbol]) -> Option<Vec<SymbolD
                 name: n.clone(),
                 kind: s.kind.as_str().to_string(),
                 file: rel.to_string(),
+                line: s.span.start_line,
                 signature: Some(s.signature.clone()),
             }),
             None => entries.push(SymbolDiffEntry {
@@ -196,6 +244,7 @@ fn diff_symbols(rel: &str, old: &[Symbol], new: &[Symbol]) -> Option<Vec<SymbolD
                 name: n.clone(),
                 kind: s.kind.as_str().to_string(),
                 file: rel.to_string(),
+                line: s.span.start_line,
                 signature: Some(s.signature.clone()),
             }),
         }
@@ -209,6 +258,7 @@ fn diff_symbols(rel: &str, old: &[Symbol], new: &[Symbol]) -> Option<Vec<SymbolD
                 name: n,
                 kind: s.kind.as_str().to_string(),
                 file: rel.to_string(),
+                line: s.span.start_line,
                 signature: None,
             });
         }

@@ -30,7 +30,7 @@ const jsonLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   license: "https://github.com/halloffame12/CTX/blob/main/LICENSE",
   author: { "@type": "Person", name: "Sumit Chauhan", url: "https://github.com/halloffame12" },
-  softwareVersion: "0.1.0",
+  softwareVersion: "0.1.2",
   codeRepository: "https://github.com/halloffame12/CTX",
 };
 

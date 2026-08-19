@@ -33,20 +33,23 @@ fn probe(root: &Path, base: &Path, spec: &str) -> Option<String> {
         if p.is_file() {
             return relpath_by_join(root, base, cand);
         }
-        // probe extensions on the last segment
-        if !p.extension().is_some() {
+        // Probe extensions on the last segment. Only skip when the spec already
+        // carries a *known source extension*: dotted stems like `user.repository`
+        // must still be extended (`user.repository` → `user.repository.ts`).
+        let has_real_ext = p
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| PROBE_EXTS.contains(&e));
+        if !has_real_ext {
             for ext in PROBE_EXTS {
-                let mut q = p.clone();
-                q.set_extension(ext);
-                if q.is_file() {
-                    q.set_extension(ext);
-                    let s = cand.to_string() + "." + ext;
+                let s = format!("{cand}.{ext}");
+                if base.join(&s).is_file() {
                     return relpath_by_join(root, base, &s);
                 }
             }
         }
         // directory index
-        for idx in ["index", "mod"] {
+        for idx in ["index", "mod", "__init__"] {
             for ext in PROBE_EXTS {
                 let q = p.join(format!("{idx}.{ext}"));
                 if q.is_file() {
@@ -126,13 +129,16 @@ pub fn resolve_import(root: &Path, current_rel: &str, spec_raw: &str) -> Resolve
         return ResolvedDependency::Unresolved(spec.to_string());
     }
 
-    // Node-style aliases like "@/lib/util" (root-relative)
+    // Node-style aliases like "@/lib/util" (root-relative). The `@/` prefix
+    // conventionally maps to the project `src/` directory (Vite/Next.js), so
+    // probe both the repo root and `src/`.
     if let Some(rest) = spec.strip_prefix('@').and_then(|r| r.strip_prefix('/')) {
-        let root_base = root.to_path_buf();
-        if let Some(rel) = probe(root, &root_base, rest)
-            && inside_root(root, &rel)
-        {
-            return ResolvedDependency::Internal(rel);
+        for base in [root.to_path_buf(), root.join("src")] {
+            if let Some(rel) = probe(root, &base, rest)
+                && inside_root(root, &rel)
+            {
+                return ResolvedDependency::Internal(rel);
+            }
         }
         return ResolvedDependency::Unresolved(spec.to_string());
     }
@@ -144,7 +150,125 @@ pub fn resolve_import(root: &Path, current_rel: &str, spec_raw: &str) -> Resolve
         return ResolvedDependency::Internal(rel);
     }
 
+    // Workspace package (monorepo): `import "@acme/core"` resolves to that
+    // package's entry file when it is listed in the root package.json
+    // `workspaces`.
+    if let Some(rel) = resolve_workspace_package(root, spec) {
+        return ResolvedDependency::Internal(rel);
+    }
+
     ResolvedDependency::External(spec.to_string())
+}
+
+/// Resolve a bare package specifier to a workspace member's entry file.
+///
+/// Reads the root `package.json` (or `pnpm-workspace.yaml` presence is not
+/// handled here) for a `workspaces` array, walks each member directory, and
+/// matches the member's `package.json` `name`. The entry file is chosen from
+/// `main`, `module`, `types`, `exports.import`/`exports.require` (string
+/// form), then falls back to `src/index.{ts,tsx,js,jsx}`.
+fn resolve_workspace_package(root: &Path, spec: &str) -> Option<String> {
+    let pkg_path = root.join("package.json");
+    let content = std::fs::read_to_string(&pkg_path).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&content).ok()?;
+    let workspaces = match json.get("workspaces") {
+        Some(serde_json::Value::Array(ws)) => ws.clone(),
+        Some(serde_json::Value::Object(obj)) => {
+            obj.get("packages").and_then(|p| p.as_array()).cloned()?
+        }
+        _ => return None,
+    };
+    for ws in workspaces {
+        let pattern = ws.as_str()?;
+        let base_dir = pattern.trim_end_matches('*').trim_end_matches('/');
+        if base_dir.is_empty() {
+            continue;
+        }
+        let dir = root.join(base_dir);
+        let Ok(read) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in read.flatten() {
+            let member = entry.path();
+            if !member.is_dir() {
+                continue;
+            }
+            let member_pkg = member.join("package.json");
+            let Ok(member_content) = std::fs::read_to_string(&member_pkg) else {
+                continue;
+            };
+            let Ok(member_json) = serde_json::from_str::<serde_json::Value>(&member_content) else {
+                continue;
+            };
+            let name = member_json
+                .get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or_default();
+            if name != spec {
+                continue;
+            }
+            return workspace_entry(root, &member);
+        }
+    }
+    None
+}
+
+/// Pick the entry file for a workspace member package, probing the declared
+/// entry points then conventional `src/index.*`.
+fn workspace_entry(root: &Path, member: &Path) -> Option<String> {
+    let member_pkg = member.join("package.json");
+    let content = std::fs::read_to_string(&member_pkg).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&content).ok()?;
+
+    let mut candidates: Vec<String> = Vec::new();
+    for key in ["main", "module", "types"] {
+        if let Some(v) = json.get(key).and_then(|v| v.as_str()) {
+            candidates.push(v.to_string());
+        }
+    }
+    if let Some(exports) = json.get("exports") {
+        if let Some(s) = exports.as_str() {
+            candidates.push(s.to_string());
+        } else if let Some(obj) = exports.as_object() {
+            for key in ["import", "require", "."] {
+                if let Some(v) = obj.get(key).and_then(|v| v.as_str()) {
+                    candidates.push(v.to_string());
+                }
+            }
+        }
+    }
+    candidates.push("src/index.ts".to_string());
+    candidates.push("src/index.tsx".to_string());
+    candidates.push("src/index.js".to_string());
+    candidates.push("src/index.jsx".to_string());
+
+    for cand in candidates {
+        let p = member.join(&cand);
+        if p.is_file() {
+            return relpath_for(root, &p);
+        }
+        // `./dist/index.js` style with missing extension
+        if !cand.contains('.') {
+            for ext in PROBE_EXTS {
+                let mut with_ext = cand.clone();
+                with_ext.push('.');
+                with_ext.push_str(ext);
+                let q = member.join(&with_ext);
+                if q.is_file() {
+                    return relpath_for(root, &q);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn relpath_for(root: &Path, p: &Path) -> Option<String> {
+    Some(normalize_rel(
+        &p.strip_prefix(root)
+            .map(|q| q.to_string_lossy().to_string())
+            .unwrap_or_else(|_| p.to_string_lossy().to_string()),
+    ))
 }
 
 fn inside_root(root: &Path, rel: &str) -> bool {
@@ -395,6 +519,33 @@ mod tests {
             Some("components/index.js")
         );
         assert_eq!(probe_rel(&root, "", "missing/thing"), None);
+    }
+
+    #[test]
+    fn probes_dotted_filename_stems() {
+        let root = tmp();
+        std::fs::create_dir_all(root.join("db/repositories")).unwrap();
+        std::fs::write(
+            root.join("db/repositories/user.repository.ts"),
+            "export const x = 1;",
+        )
+        .unwrap();
+        std::fs::write(root.join("db/auth.routes.ts"), "// routes").unwrap();
+        // "user.repository" has a dot, so Path::extension() reports "repository" —
+        // the old resolver treated it as already-extensioned and gave up. It must
+        // still probe appending source extensions.
+        assert_eq!(
+            probe_rel(&root, "", "db/repositories/user.repository").as_deref(),
+            Some("db/repositories/user.repository.ts")
+        );
+        assert_eq!(
+            probe_rel(&root, "db", "./repositories/user.repository").as_deref(),
+            Some("db/repositories/user.repository.ts")
+        );
+        assert_eq!(
+            probe_rel(&root, "", "./db/auth.routes").as_deref(),
+            Some("db/auth.routes.ts")
+        );
     }
 
     #[test]

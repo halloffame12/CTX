@@ -39,9 +39,10 @@ npx ctxai-cli mcp            # no install needed at all
 ```
 
 Point your MCP client at `ctx mcp` — no Rust, cargo, or build tools required.
-The server speaks MCP over stdio and exposes 10 tools (`ctx_project`,
+The server speaks MCP over stdio and exposes 11 tools (`ctx_project`,
 `ctx_search`, `ctx_skeleton`, `ctx_symbol`, `ctx_dependencies`,
-`ctx_dependents`, `ctx_impact`, `ctx_context`, `ctx_changed`, `ctx_diff`).
+`ctx_dependents`, `ctx_impact`, `ctx_context`, `ctx_changed`, `ctx_diff`,
+`ctx_stats`).
 
 ### Claude / Claude Desktop
 

@@ -95,7 +95,7 @@ cargo install --path .        # installs `ctx` to PATH
 Version is read from the git tag / Cargo.toml:
 
 ```bash
-ctx --version   # ctx 0.1.0
+ctx --version   # ctx 0.1.2
 ctx version     # same
 ```
 
@@ -135,7 +135,7 @@ real timings on your own repository.
 ## CLI reference
 
 ```
-Usage: ctx [OPTIONS] <COMMAND>
+Usage: ctx [OPTIONS] [COMMAND]
 
 Commands:
   init        Create .ctx, write a default config and index the project
@@ -152,6 +152,8 @@ Commands:
   benchmark   Re-run an index pass and print incremental timing
   watch       Watch the project and keep the graph in sync
   mcp         Run the Model Context Protocol server over stdio
+  stats       Show index statistics (files, symbols, dependencies, db size)
+  version     Print version information
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -233,6 +235,30 @@ Reports git presence, detected languages, framework, package manager, index
 freshness (files changed on disk since indexing), SQLite health and parser
 support — with a final `Status: READY / STALE / NOT INITIALIZED`.
 
+### `ctx search`
+
+```bash
+ctx search "user"                    # case-insensitive name match
+ctx search --kind struct "user"      # filter by symbol kind
+ctx search --kind function User      # kind aliases: fn, const, alias
+ctx search --files "src/auth"        # search file paths instead
+ctx search "user" --limit 20         # default 50, clamped to 1–500
+```
+
+Symbol kinds: `function, method, class, interface, type, enum, constant,
+variable, struct, trait, module, field, constructor, impl` — with aliases
+`fn` → function, `const` → constant, `alias` → type. An invalid kind is
+rejected (exit 2).
+
+### `ctx stats` / `ctx version`
+
+```bash
+ctx stats            # files, symbols, dependency edges, index.db size
+ctx stats --json
+ctx version          # ctx 0.1.2
+ctx version --json   # {"name":"ctx","version":"0.1.2"}
+```
+
 ## JSON mode
 
 Every query command has deterministic JSON output:
@@ -248,6 +274,9 @@ ctx diff --json
 ctx doctor --json
 ctx init --json
 ctx benchmark --json
+ctx schema --json
+ctx stats --json
+ctx version --json
 ```
 
 Invariants: **stdout is JSON only** — no ANSI codes, no decorations, no
@@ -265,6 +294,7 @@ npx ctxai-cli mcp            # no install required
 The server implements JSON-RPC 2.0 over line-delimited stdio:
 
 - `initialize`, `ping`, `notifications/initialized`, `tools/list`, `tools/call`
+- `prompts/list` and `resources/list` are served (empty by default)
 - unknown methods → `-32601`, invalid JSON → `-32700`, tool errors surface as
   `isError: true` results
 - **stdout carries protocol messages only**; all logs go to stderr
@@ -281,7 +311,8 @@ Tools exposed:
 | `ctx_impact` | change-impact analysis (`symbol` or `path`, `depth`) |
 | `ctx_context` | ranked context package (`task`, `include_bodies`, `max_tokens`) |
 | `ctx_changed` | files & symbols changed since a ref |
-| `ctx_diff` | symbol-level diff between refs |
+| `ctx_diff` | symbol-level diff between refs (single base resolves to its merge-base with HEAD) |
+| `ctx_stats` | index statistics (files, symbols, dependencies, db size) |
 
 ### opencode
 

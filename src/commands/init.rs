@@ -16,6 +16,13 @@ pub fn cmd_init(
         Some(r) => r.to_path_buf(),
         None => cwd.to_path_buf(),
     };
+    let ctx_dir = root.join(".ctx");
+    if ctx_dir.exists() && !ctx_dir.is_dir() {
+        return Err(crate::errors::CtxError::Other(format!(
+            "{0} exists but is not a directory — remove it and run `ctx init` again",
+            ctx_dir.display()
+        )));
+    }
     let config = if force {
         let mut c = Config::default();
         c.index.exclude = Config::default().index.exclude.clone();
@@ -32,7 +39,7 @@ pub fn cmd_init(
         let report = if force {
             force_reindex(&root, &config)?
         } else {
-            run_index(&root, &config)?
+            run_index(&root, &config).map_err(corrupt_index_hint(&root))?
         };
         emit_json(&serde_json::to_value(report)?);
         return Ok(());
@@ -48,7 +55,7 @@ pub fn cmd_init(
     let probe = if force {
         force_reindex(&root, &config)?
     } else {
-        run_index(&root, &config)?
+        run_index(&root, &config).map_err(corrupt_index_hint(&root))?
     };
 
     t.p(&format!(
@@ -182,5 +189,24 @@ enabled = true
 debounce_ms = 200
 "#,
         );
+    }
+}
+
+/// When a non-force index run fails on SQLite (a corrupt/truncated database),
+/// point the user at `--force` instead of leaving them with a bare driver
+/// error. Only applied when the failure is SQLite-related; other errors pass
+/// through untouched.
+fn corrupt_index_hint(
+    root: &std::path::Path,
+) -> impl FnOnce(crate::errors::CtxError) -> crate::errors::CtxError {
+    let path = root.join(".ctx").join("index.db");
+    move |e| match e {
+        crate::errors::CtxError::Sqlite(_) if path.exists() => {
+            crate::errors::CtxError::Other(format!(
+                "{e} — the existing index at {} appears corrupt; run `ctx init --force` to rebuild it",
+                path.display()
+            ))
+        }
+        other => other,
     }
 }

@@ -224,7 +224,7 @@ impl GoParser {
                         node,
                         source.as_bytes(),
                         signature_text(node, source),
-                        None,
+                        receiver_type_name(node, source),
                         crate::parser::resolve::go_exported(&text),
                         None,
                     ));
@@ -232,26 +232,49 @@ impl GoParser {
             }
             "type_declaration" => {
                 for i in 0..node.named_child_count() as u32 {
-                    if let Some(c) = node.named_child(i)
-                        && c.kind() == "type_spec"
-                        && let Some(name) = c.child_by_field_name("name")
-                    {
-                        let text = node_text(&name, source.as_bytes());
-                        let kind = match c.child_by_field_name("type").map(|t| t.kind()) {
-                            Some("struct_type") => SymbolKind::Struct,
-                            Some("interface_type") => SymbolKind::Interface,
-                            _ => SymbolKind::Type,
-                        };
-                        out.push(make_symbol(
-                            &text,
-                            kind,
-                            &c,
-                            source.as_bytes(),
-                            short_text(&c, source.as_bytes()),
-                            None,
-                            crate::parser::resolve::go_exported(&text),
-                            None,
-                        ));
+                    if let Some(c) = node.named_child(i) {
+                        match c.kind() {
+                            "type_spec" => {
+                                if let Some(name) = c.child_by_field_name("name") {
+                                    let text = node_text(&name, source.as_bytes());
+                                    let kind = match c.child_by_field_name("type").map(|t| t.kind())
+                                    {
+                                        Some("struct_type") => SymbolKind::Struct,
+                                        Some("interface_type") => SymbolKind::Interface,
+                                        _ => SymbolKind::Type,
+                                    };
+                                    out.push(make_symbol(
+                                        &text,
+                                        kind,
+                                        &c,
+                                        source.as_bytes(),
+                                        short_text(&c, source.as_bytes()),
+                                        None,
+                                        crate::parser::resolve::go_exported(&text),
+                                        None,
+                                    ));
+                                    if kind == SymbolKind::Struct {
+                                        self.collect_struct_fields(&c, source, out, &text);
+                                    }
+                                }
+                            }
+                            "type_alias" => {
+                                if let Some(name) = c.child_by_field_name("name") {
+                                    let text = node_text(&name, source.as_bytes());
+                                    out.push(make_symbol(
+                                        &text,
+                                        SymbolKind::Type,
+                                        &c,
+                                        source.as_bytes(),
+                                        short_text(&c, source.as_bytes()),
+                                        None,
+                                        crate::parser::resolve::go_exported(&text),
+                                        None,
+                                    ));
+                                }
+                            }
+                            _ => {}
+                        }
                     }
                 }
             }
@@ -275,23 +298,28 @@ impl GoParser {
                 let Some(name) = c.named_child(i) else {
                     continue;
                 };
-                if name.kind() == "type_identifier" || name.kind() == "identifier" {
-                    let text = node_text(&name, source.as_bytes());
-                    out.push(make_symbol(
-                        &text,
-                        if is_const {
-                            SymbolKind::Constant
-                        } else {
-                            SymbolKind::Variable
-                        },
-                        &c,
-                        source.as_bytes(),
-                        short_text(&c, source.as_bytes()),
-                        None,
-                        crate::parser::resolve::go_exported(&text),
-                        None,
-                    ));
+                // Only the declared names (`identifier`) are symbols. The
+                // optional type annotation is a `type_identifier` node; the
+                // value expression may nest other identifiers too, so never
+                // treat those as new symbols.
+                if name.kind() != "identifier" {
+                    continue;
                 }
+                let text = node_text(&name, source.as_bytes());
+                out.push(make_symbol(
+                    &text,
+                    if is_const {
+                        SymbolKind::Constant
+                    } else {
+                        SymbolKind::Variable
+                    },
+                    &c,
+                    source.as_bytes(),
+                    short_text(&c, source.as_bytes()),
+                    None,
+                    crate::parser::resolve::go_exported(&text),
+                    None,
+                ));
             }
         }
     }
@@ -303,4 +331,89 @@ fn signature_text(node: &Node, source: &str) -> String {
         .map(|b| b.start_byte())
         .unwrap_or_else(|| node.end_byte());
     header_signature(node, source.as_bytes(), end)
+}
+
+/// Register the fields of a struct as `Field` symbols whose parent is the
+/// struct name.
+impl GoParser {
+    fn collect_struct_fields(
+        &self,
+        type_spec: &Node,
+        source: &str,
+        out: &mut Vec<Symbol>,
+        struct_name: &str,
+    ) {
+        let Some(struct_type) = type_spec.child_by_field_name("type") else {
+            return;
+        };
+        // The field_declaration_list is nested inside struct_type; locate it
+        // either via the `body` field or as a direct named child.
+        let field_list = struct_type
+            .child_by_field_name("body")
+            .filter(|n| n.kind() == "field_declaration_list")
+            .or_else(|| {
+                (0..struct_type.named_child_count() as u32)
+                    .find_map(|i| struct_type.named_child(i))
+                    .filter(|n| n.kind() == "field_declaration_list")
+            });
+        let Some(field_list) = field_list else {
+            return;
+        };
+        for i in 0..field_list.named_child_count() as u32 {
+            let Some(f) = field_list.named_child(i) else {
+                continue;
+            };
+            if f.kind() != "field_declaration" {
+                continue;
+            }
+            let Some(name) = f.child_by_field_name("name") else {
+                continue;
+            };
+            let text = node_text(&name, source.as_bytes());
+            if text.is_empty() {
+                continue;
+            }
+            out.push(make_symbol(
+                &text,
+                SymbolKind::Field,
+                &f,
+                source.as_bytes(),
+                short_text(&f, source.as_bytes()),
+                Some(struct_name.to_string()),
+                crate::parser::resolve::go_exported(&text),
+                None,
+            ));
+        }
+    }
+}
+
+/// Extract the base type name of a method receiver, e.g. `*User` -> `User`,
+/// `pkg.User` -> `User`.
+fn receiver_type_name(node: &Node, source: &str) -> Option<String> {
+    let recv = node.child_by_field_name("receiver")?;
+    for i in 0..recv.named_child_count() as u32 {
+        let Some(p) = recv.named_child(i) else {
+            continue;
+        };
+        if p.kind() != "parameter_declaration" {
+            continue;
+        }
+        let Some(ty) = p.child_by_field_name("type") else {
+            continue;
+        };
+        let base = base_type_node(&ty);
+        let text = node_text(&base, source.as_bytes());
+        let name = text.rsplit('.').next().unwrap_or(&text).to_string();
+        if !name.is_empty() {
+            return Some(name);
+        }
+    }
+    None
+}
+
+fn base_type_node<'t>(node: &Node<'t>) -> Node<'t> {
+    match node.kind() {
+        "pointer_type" | "array_type" => node.named_child(0).unwrap_or(*node),
+        _ => *node,
+    }
 }

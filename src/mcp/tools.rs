@@ -105,7 +105,7 @@ pub fn list_tools() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "ctx_diff".into(),
-            description: "Semantic diff: symbols added, modified or removed between two refs. Default base is HEAD.".into(),
+            description: "Semantic diff: symbols added, modified or removed between two refs. Base defaults to HEAD; a single base resolves to its merge-base with HEAD, so the diff shows only the current branch's changes.".into(),
             input_schema: json!({
                 "type":"object",
                 "properties":{
@@ -300,7 +300,7 @@ fn tool_context(project: &Project, args: &Value) -> CtxResult<String> {
         project
             .git
             .as_ref()
-            .and_then(|git| crate::git::changed::changed_files(git, None).ok())
+            .and_then(|git| crate::git::changed::changed_files(git, None, true).ok())
             .map(|files| files.into_iter().map(|c| c.path).collect())
     } else {
         None

@@ -2,7 +2,7 @@
 #
 # ctx — WinGet manifest
 PackageIdentifier: halloffame12.CTX
-PackageVersion: 0.1.1
+PackageVersion: 0.1.2
 DefaultLocale: en-US
 ManifestType: version
 ManifestVersion: 1.6.0

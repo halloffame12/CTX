@@ -2,6 +2,34 @@
 
 All notable changes to `ctx` are documented here.
 
+## 0.1.2
+
+### Fixed
+- Symbol references are now symbol-level, not file-level: a symbol's references
+  list only the files that actually import that symbol (verified for Rust,
+  Python, Go, TypeScript and JavaScript). Previously, `Message` referenced every
+  importer of its containing module (`P2-1`).
+- TypeScript/JavaScript named imports now record their imported symbols. The
+  tree-sitter-typescript grammar marks no `import_clause` field, so
+  `child_by_field_name("import_clause")` silently returned `None` and every
+  JS/TS import lost its symbol — degrading all JS/TS symbol references to
+  file-level. The parser now locates the clause node by kind (`P2-5`).
+- `ctx impact` resolves an ambiguous symbol to its production definition when
+  one exists, instead of the test double (`P3-1`).
+- A file that fails to parse now yields a bounded, declaration-only skeleton
+  (80 lines / 12 KiB) instead of dumping the whole source (`P2-2`).
+- `ctx context` caps follow-only files (dependencies/dependents of relevant
+  files with no direct signal) at 6, so a hub can no longer flood the package
+  or starve a genuinely-needed direct match (`P2-3`).
+- `ctx changed` now reports only the symbols that actually changed (added /
+  modified / removed with status), instead of every symbol in a changed file
+  (`P2-4`).
+- `token_estimate` renamed to `is_estimate` across the codebase (`P3-2`).
+
+### Tests
+- 109 tests green: 23 unit + 69 integration + 17 skeleton, including new
+  regression tests for every fix above.
+
 ## 0.1.1
 
 ### Added

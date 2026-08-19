@@ -13,19 +13,19 @@
 class Ctx < Formula
   desc "Codebase intelligence and context engine for AI coding agents"
   homepage "https://github.com/halloffame12/CTX"
-  version "0.1.1"
+  version "0.1.2"
 
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-macos-aarch64"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-aarch64"
     sha256 "63039ed5e9fb352a5dc4bd082101fb76089661aac2b6a789025febe7cbf1e665"
   elsif OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-macos-x86_64"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-x86_64"
     sha256 "d33153bfc2dc5f6d42b46ced0154cb4567909f171c8931660b66b2a53901bbc5"
   elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-linux-aarch64"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-aarch64"
     sha256 "07b247d3599c70b00cccb4786e7f2e5ed183c7f2ef87d4497cb83968d9e9c317"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.1/ctx-linux-x86_64"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-x86_64"
     sha256 "b4d3d9817e6f52893ebf509b978b4b52f6651f1ed11f002c40f1ffcf7495d307"
   else
     odie "ctx: unsupported platform — only macOS (Intel/ARM) and Linux (Intel/ARM) are supported"

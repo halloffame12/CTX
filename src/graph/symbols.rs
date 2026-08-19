@@ -2,6 +2,16 @@
 
 use crate::errors::CtxResult;
 use crate::graph::database::{Database, FileRecord, SymbolRow};
+use crate::graph::impact::is_test_file;
+
+/// Prefer production definitions over test doubles when several symbols share
+/// a name (e.g. `SmartMatchmaking` exists both as a server class and as a test
+/// mock). Test files are still returned, just demoted so the production symbol
+/// is seen first.
+fn prefer_non_test(mut out: Vec<LocatedSymbol>) -> Vec<LocatedSymbol> {
+    out.sort_by_key(|a| is_test_file(&a.file.path));
+    out
+}
 
 /// Resolve a symbol by exact name; prefer exported/class-level matches when
 /// several symbols share a name. Accepts a bare name (`updateUser`) or a
@@ -29,7 +39,7 @@ pub fn resolve_symbol(
             out.push(LocatedSymbol { symbol: row, file });
         }
         if !out.is_empty() {
-            return Ok(out);
+            return Ok(prefer_non_test(out));
         }
     }
 
@@ -45,7 +55,7 @@ pub fn resolve_symbol(
         }
         out.push(LocatedSymbol { symbol: row, file });
     }
-    Ok(out)
+    Ok(prefer_non_test(out))
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -108,7 +118,22 @@ pub fn symbol_detail(db: &Database, name: &str) -> CtxResult<Vec<SymbolDetail>> 
             .filter(|p| !p.is_empty())
             .unwrap_or(&located.symbol.name);
         let methods = methods_of(db, located.file.id, class_name)?;
-        let references = db.dependents_of(located.file.id)?;
+        // References are symbol-level: only files that import THIS symbol, not
+        // every file that imports anything from the containing file. The
+        // parsers record the imported name for TS/JS, Rust and Python; when a
+        // dependent recorded no symbol at all (Go, side-effect imports, bare
+        // `import module`), fall back to the file-level dependent so those
+        // cases still surface something.
+        let dependents = db.dependents_of(located.file.id)?;
+        let any_symbol_level = dependents.iter().any(|(_, sym)| sym.is_some());
+        let references = if any_symbol_level {
+            dependents
+                .into_iter()
+                .filter(|(_, sym)| sym.as_deref() == Some(located.symbol.name.as_str()))
+                .collect()
+        } else {
+            dependents
+        };
         let dependencies = db.internal_dependencies_of(located.file.id)?;
         out.push(SymbolDetail {
             symbol: located.symbol,

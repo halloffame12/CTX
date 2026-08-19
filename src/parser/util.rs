@@ -135,6 +135,70 @@ pub fn parse_with(lang: &tree_sitter::Language, source: &str) -> Option<Tree> {
     parser.parse(source, None)
 }
 
+/// Structural fallback for malformed code: keep declaration-header lines only,
+/// dropping bodies, so an LLM still sees what is declared where without paying
+/// full-source tokens for a file tree-sitter could not fully parse. The output
+/// is bounded in both line count and byte size.
+pub fn fallback_skeleton(source: &str, max_lines: usize) -> String {
+    const DECL_PREFIXES: &[&str] = &[
+        "function ",
+        "class ",
+        "interface ",
+        "type ",
+        "enum ",
+        "const ",
+        "let ",
+        "var ",
+        "async ",
+        "export ",
+        "import ",
+        "from ",
+        "def ",
+        "impl ",
+        "fn ",
+        "struct ",
+        "trait ",
+        "pub ",
+        "private ",
+        "protected ",
+        "static ",
+        "package ",
+        "func ",
+        "use ",
+    ];
+    const MAX_SKELETON_BYTES: usize = 12_000;
+    let total = source.lines().count();
+    let mut out: Vec<&str> = Vec::new();
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() {
+            if out.last().is_some_and(|l| l.trim().is_empty()) {
+                continue;
+            }
+            out.push(line);
+            continue;
+        }
+        let is_decl =
+            DECL_PREFIXES.iter().any(|p| trimmed.starts_with(p)) || trimmed.ends_with('{');
+        if is_decl {
+            out.push(line);
+        }
+    }
+    let mut text = out
+        .into_iter()
+        .take(max_lines)
+        .collect::<Vec<_>>()
+        .join("\n");
+    if text.len() > MAX_SKELETON_BYTES {
+        text.truncate(MAX_SKELETON_BYTES);
+        text.push_str("\n// ... (skeleton truncated)");
+    }
+    if total > max_lines {
+        text.push_str(&format!("\n// ... (skeleton truncated: {total} lines)"));
+    }
+    text
+}
+
 /// Replace interiors of brace-wrapped body nodes for function-like kinds.
 ///
 /// The result keeps braces and every line of surrounding structure, collapsing
@@ -147,9 +211,16 @@ pub fn skeleton_brace_wrapped(
     placeholder: &str,
 ) -> String {
     let Some(tree) = parse_with(lang, source) else {
-        return source.to_string();
+        return fallback_skeleton(source, 80);
     };
     let root = tree.root_node();
+    // Malformed code: splicing a broken tree produces structurally corrupt
+    // (e.g. unbalanced-brace) output that is worse than the original. Degrade
+    // gracefully with a bounded declaration-only skeleton instead of dumping
+    // the whole file.
+    if has_errors(&root) {
+        return fallback_skeleton(source, 80);
+    }
     let mut ranges: Vec<(usize, usize)> = Vec::new();
     walk(&root, &mut |n| {
         if functionish_kinds.contains(&n.kind())

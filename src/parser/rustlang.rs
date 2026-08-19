@@ -164,7 +164,7 @@ impl super::traits::LanguageParser for RustParser {
                 out.push(Dependency {
                     imported_symbol: imported,
                     dependency_type: DependencyType::Use,
-                    source_raw: raw,
+                    source_raw: base.clone(),
                     resolved,
                 });
             }
@@ -407,23 +407,34 @@ impl RustParser {
         out: &mut Vec<Symbol>,
         container: &mut Option<String>,
     ) {
+        // tree-sitter-rust nests fields inside a `field_declaration_list`
+        // node, so descend one level before matching field declarations.
         for i in 0..node.named_child_count() as u32 {
             let Some(c) = node.named_child(i) else {
                 continue;
             };
-            if matches!(c.kind(), "field_declaration" | "field_initializer")
-                && let Some(name) = c.child_by_field_name("name")
-            {
-                out.push(make_symbol(
-                    &node_text(&name, source.as_bytes()),
-                    SymbolKind::Field,
-                    &c,
-                    source.as_bytes(),
-                    short_text(&c, source.as_bytes()),
-                    container.clone(),
-                    true,
-                    None,
-                ));
+            let candidates: Vec<Node> = if c.kind() == "field_declaration_list" {
+                (0..c.named_child_count() as u32)
+                    .filter_map(|j| c.named_child(j))
+                    .collect()
+            } else {
+                vec![c]
+            };
+            for f in candidates {
+                if matches!(f.kind(), "field_declaration" | "field_initializer")
+                    && let Some(name) = f.child_by_field_name("name")
+                {
+                    out.push(make_symbol(
+                        &node_text(&name, source.as_bytes()),
+                        SymbolKind::Field,
+                        &f,
+                        source.as_bytes(),
+                        short_text(&f, source.as_bytes()),
+                        container.clone(),
+                        true,
+                        None,
+                    ));
+                }
             }
         }
     }
@@ -445,6 +456,16 @@ fn visibility_to_opt(text: String) -> Option<String> {
 }
 
 fn impl_name(node: &Node, source: &str) -> String {
+    // Prefer the structured `type` field: it points at the concrete type an
+    // impl targets (`impl Describe for User` -> User, `impl<T> Order<T>` ->
+    // Order) without generic parameter lists or type arguments polluting the
+    // name.
+    if let Some(ty) = node.child_by_field_name("type") {
+        let base = rust_base_type_name(&ty, source);
+        if !base.is_empty() {
+            return base;
+        }
+    }
     let text = node_text(node, source.as_bytes());
     let mut t = text.trim();
     for prefix in ["pub ", "unsafe ", "default "] {
@@ -467,5 +488,18 @@ fn impl_name(node: &Node, source: &str) -> String {
         "impl".to_string()
     } else {
         name.to_string()
+    }
+}
+
+/// Extract the base type name from a type node, e.g. `Order<T>` -> `Order`,
+/// `User` -> `User`, `Vec<u8>` -> `Vec`.
+fn rust_base_type_name(node: &Node, source: &str) -> String {
+    match node.kind() {
+        "type_identifier" | "identifier" => node_text(node, source.as_bytes()),
+        "generic_type" => node
+            .child_by_field_name("type")
+            .map(|t| node_text(&t, source.as_bytes()))
+            .unwrap_or_default(),
+        _ => String::new(),
     }
 }

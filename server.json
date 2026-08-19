@@ -51,7 +51,11 @@
     },
     {
       "name": "ctx_diff",
-      "description": "Semantic diff: symbols added, modified or removed between two refs."
+      "description": "Semantic diff: symbols added, modified or removed between two refs. A single base resolves to its merge-base with HEAD, so the diff shows only the current branch's changes."
+    },
+    {
+      "name": "ctx_stats",
+      "description": "Index statistics: counts of files, symbols and dependencies, and the size of index.db."
     }
   ]
 }

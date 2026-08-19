@@ -94,12 +94,16 @@ impl super::traits::LanguageParser for JsParser {
                         return;
                     };
                     let spec = strip_string(&node_text(&source_node, source.as_bytes()));
-                    let names: Vec<String> =
-                        if let Some(clause) = n.child_by_field_name("import_clause") {
-                            import_names(&clause, source)
-                        } else {
-                            Vec::new()
-                        };
+                    // NOTE: tree-sitter-typescript does not mark the
+                    // import_clause child as a field (only `source` is), so
+                    // child_by_field_name("import_clause") always returns None
+                    // and named imports would lose their symbols. Locate the
+                    // clause node by kind instead.
+                    let names: Vec<String> = if let Some(clause) = import_clause_node(n) {
+                        import_names(&clause, source)
+                    } else {
+                        Vec::new()
+                    };
                     push_deps(
                         &mut out,
                         spec,
@@ -147,22 +151,41 @@ impl super::traits::LanguageParser for JsParser {
                     if func.kind() == "identifier" || func.kind() == "import" {
                         let name = node_text(&func, source.as_bytes());
                         if name == "require" || name == "import" {
+                            // The specifier string is nested under `arguments`;
+                            // collect every string literal in the argument list.
+                            let mut specs: Vec<String> = Vec::new();
                             for i in 0..n.named_child_count() as u32 {
-                                if let Some(c) = n.named_child(i)
-                                    && c.kind() == "string"
+                                let Some(c) = n.named_child(i) else {
+                                    continue;
+                                };
+                                if c.kind() == "string"
                                     && (c.start_position().row > func.start_position().row
                                         || c.start_byte() > func.end_byte())
                                 {
-                                    let spec = strip_string(&node_text(&c, source.as_bytes()));
-                                    push_deps(
-                                        &mut out,
-                                        spec,
-                                        DependencyType::Require,
-                                        Vec::new(),
-                                        current_rel,
-                                        root,
-                                    );
+                                    specs.push(strip_string(&node_text(&c, source.as_bytes())));
+                                } else if c.kind() == "arguments" {
+                                    for j in 0..c.named_child_count() as u32 {
+                                        let Some(a) = c.named_child(j) else {
+                                            continue;
+                                        };
+                                        if a.kind() == "string" {
+                                            specs.push(strip_string(&node_text(
+                                                &a,
+                                                source.as_bytes(),
+                                            )));
+                                        }
+                                    }
                                 }
+                            }
+                            for spec in specs {
+                                push_deps(
+                                    &mut out,
+                                    spec,
+                                    DependencyType::Require,
+                                    Vec::new(),
+                                    current_rel,
+                                    root,
+                                );
                             }
                         }
                     }
@@ -208,7 +231,11 @@ impl JsParser {
         container: &mut Option<String>,
     ) {
         match node.kind() {
-            "program" | "module" | "export_statement" | "statement_block"
+            "program"
+            | "module"
+            | "export_statement"
+            | "statement_block"
+            | "expression_statement"
                 if container.is_none() =>
             {
                 // descend into top-level containers only (function bodies excluded
@@ -338,7 +365,11 @@ impl JsParser {
                     self.register_function(&c, source, out, container, true);
                 }
                 "public_field_definition" | "field_definition" => {
-                    if let Some(name) = c.child_by_field_name("name") {
+                    // TS exposes the name under `name`; JS uses `property`.
+                    let name = c
+                        .child_by_field_name("name")
+                        .or_else(|| c.child_by_field_name("property"));
+                    if let Some(name) = name {
                         let text = node_text(&name, source.as_bytes());
                         let header = header_signature(&c, source.as_bytes(), c.end_byte());
                         let vis = visibility_from(&header);
@@ -474,6 +505,19 @@ fn strip_string(s: &str) -> String {
         }
     }
     s.to_string()
+}
+
+fn import_clause_node<'a>(stmt: &Node<'a>) -> Option<Node<'a>> {
+    if let Some(c) = stmt.child_by_field_name("import_clause") {
+        return Some(c);
+    }
+    for i in 0..stmt.named_child_count() as u32 {
+        let c = stmt.named_child(i)?;
+        if c.kind() == "import_clause" {
+            return Some(c);
+        }
+    }
+    None
 }
 
 fn import_names(clause: &Node, source: &str) -> Vec<String> {

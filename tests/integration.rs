@@ -260,6 +260,197 @@ fn search_and_symbol_details() {
 }
 
 #[test]
+fn symbol_references_are_symbol_level_not_file_level() {
+    // app.py imports only `create_user` from src/models.py — NOT the User
+    // class. References for `create_user` must include app.py, while
+    // references for `User` must NOT (this was a file-level false positive).
+    let root = fixture();
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let create_user = ctx::graph::symbols::symbol_detail(&db, "create_user").unwrap();
+    let cu = create_user
+        .iter()
+        .find(|d| d.file.path == "src/models.py")
+        .expect("models.create_user");
+    assert!(
+        cu.references.iter().any(|(p, _)| p == "src/app.py"),
+        "create_user referenced by app.py: {:?}",
+        cu.references
+    );
+
+    let user = ctx::graph::symbols::symbol_detail(&db, "User").unwrap();
+    let u = user
+        .iter()
+        .find(|d| d.file.path == "src/models.py")
+        .expect("models.User");
+    assert!(
+        !u.references.iter().any(|(p, _)| p == "src/app.py"),
+        "User must NOT reference app.py (app only imports create_user): {:?}",
+        u.references
+    );
+}
+
+#[test]
+fn ts_symbol_references_are_symbol_level_not_file_level() {
+    // The TS grammar has no `import_clause` FIELD on import_statement; the
+    // parser must locate the clause by kind or every named import loses its
+    // symbol and references degrade to file-level. `app.ts` imports only
+    // `createUser` from models.ts — NOT `User` — so User must not be
+    // referenced from app.ts.
+    let root = temp_root("ts_symref");
+    write(&root, "src/models.ts", "export interface User { id: number }\nexport function createUser() {}\n");
+    write(
+        &root,
+        "src/app.ts",
+        "import { createUser } from './models';\nconsole.log(createUser());\n",
+    );
+    write(&root, "src/other.ts", "import { User } from './models';\nconst u: User = { id: 1 };\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let create_user = ctx::graph::symbols::symbol_detail(&db, "createUser").unwrap();
+    let cu = create_user
+        .iter()
+        .find(|d| d.file.path == "src/models.ts")
+        .expect("models.createUser");
+    assert!(
+        cu.references.iter().any(|(p, _)| p == "src/app.ts"),
+        "createUser referenced by app.ts: {:?}",
+        cu.references
+    );
+
+    let user = ctx::graph::symbols::symbol_detail(&db, "User").unwrap();
+    let u = user
+        .iter()
+        .find(|d| d.file.path == "src/models.ts")
+        .expect("models.User");
+    assert!(
+        !u.references.iter().any(|(p, _)| p == "src/app.ts"),
+        "User must NOT reference app.ts (app only imports createUser): {:?}",
+        u.references
+    );
+    assert!(
+        u.references.iter().any(|(p, _)| p == "src/other.ts"),
+        "User referenced by other.ts: {:?}",
+        u.references
+    );
+}
+
+#[test]
+fn impact_prefers_production_symbol_over_test_double() {
+    let root = temp_root("impact_prod");
+    write(&root, "server/index.js", "class SmartMatchmaking {}\n");
+    write(
+        &root,
+        "__tests__/matchmaking.test.js",
+        "class SmartMatchmaking {}\n",
+    );
+    write(
+        &root,
+        "src/a.js",
+        "import { SmartMatchmaking } from '../server/index';\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+    let (path, _, _sym) = resolve_target(&db, "SmartMatchmaking")
+        .unwrap()
+        .expect("symbol resolves");
+    assert_eq!(
+        path, "server/index.js",
+        "impact must prefer the production definition over the test mock"
+    );
+}
+
+#[test]
+fn context_puts_direct_hits_first_and_caps_follow_only_files() {
+    // A strongly-matching direct file plus a hub with many dependents. The
+    // direct hit must be selected first, and the hub's leaves (which have no
+    // direct signal) must be capped so they cannot flood the package.
+    let root = temp_root("ctx_prio");
+    write(
+        &root,
+        "src/core/api.ts",
+        "export function ApiClient() { return 1; }\n",
+    );
+    for i in 0..12 {
+        write(
+            &root,
+            &format!("src/leaf{i}.ts"),
+            // Leaves only import from api.ts — their own symbols must not
+            // reference the task keywords, so they are genuinely follow-only
+            // (no direct signal) and the follow cap is exercised.
+            &format!(
+                "import {{ ApiClient }} from '../core/api';\nexport const use{i} = 'x';\n"
+            ),
+        );
+    }
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+    let pkg =
+        ctx::context::builder::build_context(&db, &root, "replace api client", &config, false)
+            .unwrap();
+    let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+    assert_eq!(
+        paths.first(),
+        Some(&"src/core/api.ts"),
+        "direct hit must be selected first: {paths:?}"
+    );
+    let leaves = paths
+        .iter()
+        .filter(|p| p.starts_with("src/leaf"))
+        .count();
+    assert!(
+        leaves <= 6,
+        "follow-only leaves capped at 6, got {leaves}: {paths:?}"
+    );
+}
+
+#[test]
+fn changed_symbols_reports_only_actual_diffs() {
+    let root = temp_root("changed_syms");
+    write(
+        &root,
+        "src/a.ts",
+        "export function keep() { return 1; }\nexport function edit() { return 1; }\n",
+    );
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"]).unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "initial"]).unwrap();
+
+    // edit only `edit`; `keep` is untouched
+    write(
+        &root,
+        "src/a.ts",
+        "export function keep() { return 1; }\nexport function edit(x: number) { return x; }\n",
+    );
+
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+    let report = ctx::git::changed::changed_symbols(&git, &db, None).unwrap();
+    let names: Vec<&str> = report.symbols.iter().map(|s| s.name.as_str()).collect();
+    assert!(
+        names.contains(&"edit"),
+        "edited symbol listed: {names:?}"
+    );
+    assert!(
+        !names.contains(&"keep"),
+        "unchanged symbol must not be listed: {names:?}"
+    );
+    assert!(
+        report.symbols.iter().any(|s| s.name == "edit" && s.status == "Modified"),
+        "edit flagged as Modified: {:?}",
+        report.symbols
+    );
+}
+
+#[test]
 fn impact_analysis_finds_dependents() {
     let root = fixture();
     let config = Config::default();
@@ -347,6 +538,256 @@ func hi() string { return "hi" }
     let parsed = parse_source(ctx::lang::LanguageId::Go, go, "main.go", root).unwrap();
     assert!(parsed.symbols.iter().any(|s| s.name == "main"));
     assert!(parsed.symbols.iter().any(|s| s.name == "hi"));
+}
+
+#[test]
+fn python_module_scope_and_enum_fields_are_indexed() {
+    let root = Path::new(".");
+    let py = r#"
+DEFAULT_ROLE = "user"
+
+class OrderStatus(Enum):
+    PENDING = "pending"
+    PAID = "paid"
+
+@dataclass
+class Order:
+    id: int
+    status: OrderStatus = OrderStatus.PENDING
+
+MAX_ITEMS = 100
+"#;
+    let parsed = parse_source(ctx::lang::LanguageId::Python, py, "order.py", root).unwrap();
+    let find = |name: &str, kind: &str| {
+        parsed
+            .symbols
+            .iter()
+            .any(|s| s.name == name && s.kind.as_str() == kind)
+    };
+    // Module-level constants must be indexed (regression: wrapped in expression_statement).
+    assert!(
+        find("DEFAULT_ROLE", "constant"),
+        "module constant DEFAULT_ROLE"
+    );
+    assert!(find("MAX_ITEMS", "constant"), "module constant MAX_ITEMS");
+    // Enum members indexed as fields of the enum class.
+    assert!(find("PENDING", "field"), "enum member PENDING");
+    assert!(find("PAID", "field"), "enum member PAID");
+    // Dataclass fields indexed as fields of the class.
+    let order = parsed
+        .symbols
+        .iter()
+        .find(|s| s.name == "Order" && s.kind.as_str() == "class")
+        .expect("Order class");
+    assert!(
+        parsed.symbols.iter().any(|s| {
+            s.name == "id"
+                && s.kind == ctx::parser::traits::SymbolKind::Field
+                && s.parent.as_deref() == Some("Order")
+        }),
+        "dataclass field id parent=Order"
+    );
+    assert!(
+        parsed.symbols.iter().any(|s| s.name == "status"
+            && s.kind == ctx::parser::traits::SymbolKind::Field
+            && s.parent.as_deref() == Some("Order")),
+        "dataclass field status parent=Order"
+    );
+    let _ = order;
+}
+
+#[test]
+fn javascript_field_definition_and_malformed_recovery() {
+    let root = Path::new(".");
+    let js = r#"
+class Cart {
+  items = [];
+
+  constructor() {
+    this.total = 0;
+  }
+
+  addItem(item) {
+    this.items.push(item);
+  }
+}
+"#;
+    let parsed = parse_source(ctx::lang::LanguageId::JavaScript, js, "cart.js", root).unwrap();
+    assert!(
+        parsed.symbols.iter().any(|s| {
+            s.name == "items"
+                && s.kind == ctx::parser::traits::SymbolKind::Field
+                && s.parent.as_deref() == Some("Cart")
+        }),
+        "field_definition uses property field name"
+    );
+
+    // Malformed source with unclosed braces: function must still be recovered.
+    let broken = "function broken() {\n  if (true) {\n    return 1;";
+    let parsed =
+        parse_source(ctx::lang::LanguageId::JavaScript, broken, "broken.js", root).unwrap();
+    assert!(
+        parsed
+            .symbols
+            .iter()
+            .any(|s| s.name == "broken" && s.kind.as_str() == "function"),
+        "malformed JS recovers broken()"
+    );
+}
+
+#[test]
+fn go_struct_fields_method_receiver_and_type_alias() {
+    let root = Path::new(".");
+    let go = r#"package models
+
+type User struct {
+	ID   int64
+	Name string
+}
+
+type OrderID = int64
+
+type UserStatus int
+
+const (
+	StatusActive   UserStatus = 1
+	StatusInactive UserStatus = 2
+)
+
+func (u *User) DisplayName() string {
+	return u.Name
+}
+"#;
+    let parsed = parse_source(ctx::lang::LanguageId::Go, go, "user.go", root).unwrap();
+    let find = |name: &str, kind: &str| {
+        parsed
+            .symbols
+            .iter()
+            .any(|s| s.name == name && s.kind.as_str() == kind)
+    };
+    // Struct fields nested under field_declaration_list must be indexed.
+    assert!(find("ID", "field"), "struct field ID");
+    assert!(find("Name", "field"), "struct field Name");
+    // type alias `type OrderID = int64` is a type symbol.
+    assert!(find("OrderID", "type"), "type alias OrderID");
+    // const block: only identifiers registered (no phantom type_identifier consts).
+    assert!(find("StatusActive", "constant"), "const StatusActive");
+    assert!(find("StatusInactive", "constant"), "const StatusInactive");
+    assert!(
+        parsed
+            .symbols
+            .iter()
+            .filter(|s| s.name == "UserStatus")
+            .count()
+            <= 1,
+        "UserStatus type registered at most once (no phantom const)"
+    );
+    // Method on pointer receiver parented to the struct.
+    assert!(
+        parsed.symbols.iter().any(|s| {
+            s.name == "DisplayName"
+                && s.kind == ctx::parser::traits::SymbolKind::Method
+                && s.parent.as_deref() == Some("User")
+        }),
+        "receiver method DisplayName parent=User"
+    );
+}
+
+#[test]
+fn rust_struct_fields_generic_impl_and_trait_impl_naming() {
+    let root = Path::new(".");
+    let rs = r#"
+pub struct Order<T> {
+    pub id: u64,
+    pub items: Vec<T>,
+}
+
+impl<T> Order<T> {
+    pub fn total(&self) -> u64 {
+        self.items.len() as u64
+    }
+}
+
+pub trait Describe {
+    fn describe(&self) -> String;
+}
+
+impl Describe for User {
+    fn describe(&self) -> String {
+        format!("{}", self.id)
+    }
+}
+"#;
+    let parsed = parse_source(ctx::lang::LanguageId::Rust, rs, "order.rs", root).unwrap();
+    // Struct fields nested under field_declaration_list must be indexed.
+    assert!(
+        parsed.symbols.iter().any(|s| s.name == "id"
+            && s.kind == ctx::parser::traits::SymbolKind::Field
+            && s.parent.as_deref() == Some("Order")),
+        "struct field id parent=Order"
+    );
+    assert!(
+        parsed.symbols.iter().any(|s| s.name == "items"
+            && s.kind == ctx::parser::traits::SymbolKind::Field
+            && s.parent.as_deref() == Some("Order")),
+        "struct field items parent=Order"
+    );
+    // Generic impl<T> Order<T> names the impl after the base type.
+    assert!(
+        parsed
+            .symbols
+            .iter()
+            .any(|s| s.name == "Order" && s.kind == ctx::parser::traits::SymbolKind::Impl),
+        "generic impl<T> Order<T> named Order"
+    );
+    assert!(
+        parsed.symbols.iter().any(|s| s.name == "total"
+            && s.kind == ctx::parser::traits::SymbolKind::Method
+            && s.parent.as_deref() == Some("Order")),
+        "total method parent=Order"
+    );
+    // Trait impl `impl Describe for User` still indexes the trait and methods.
+    assert!(
+        parsed
+            .symbols
+            .iter()
+            .any(|s| s.name == "Describe" && s.kind.as_str() == "trait"),
+        "trait Describe"
+    );
+    assert!(
+        parsed.symbols.iter().any(|s| s.name == "describe"),
+        "describe method present"
+    );
+}
+
+#[test]
+fn typescript_field_definition_name_field() {
+    let root = Path::new(".");
+    let ts = r#"
+export class ApiClient {
+  private readonly userService: UserService;
+  protected version = "2.0";
+
+  constructor(userService: UserService) {
+    this.userService = userService;
+  }
+}
+"#;
+    let parsed = parse_source(ctx::lang::LanguageId::TypeScript, ts, "client.ts", root).unwrap();
+    assert!(
+        parsed.symbols.iter().any(|s| {
+            s.name == "userService"
+                && s.kind == ctx::parser::traits::SymbolKind::Field
+                && s.parent.as_deref() == Some("ApiClient")
+        }),
+        "TS private field userService parent=ApiClient"
+    );
+    assert!(
+        parsed.symbols.iter().any(|s| s.name == "version"
+            && s.kind == ctx::parser::traits::SymbolKind::Field
+            && s.parent.as_deref() == Some("ApiClient")),
+        "TS protected field version parent=ApiClient"
+    );
 }
 
 #[test]
@@ -480,6 +921,267 @@ fn context_follows_dependencies_of_relevant_files() {
             |f| f.path == "src/client.py" && f.reasons.iter().any(|r| r.contains("dependency"))
         ),
         "client.py should cite the dependency reason"
+    );
+}
+
+#[test]
+fn context_follows_dependents_of_relevant_files() {
+    let root = temp_root("ctx_deprev");
+    // repository is imported by a service; task names the repository's concept.
+    // Changing the repository contract must surface its dependents (the service).
+    write(
+        &root,
+        "src/data/repository.py",
+        "class SearchIndex:\n    def query(self):\n        return None\n",
+    );
+    write(
+        &root,
+        "src/app/service.py",
+        "from src.data.repository import SearchIndex as Store\nclass Worker:\n    def go(self):\n        return Store().load()\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg =
+        ctx::context::build_context(&db, &root, "repair the search index", &config, false).unwrap();
+    let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        paths.contains(&"src/data/repository.py"),
+        "repository.py relevant: {paths:?}"
+    );
+    assert!(
+        paths.contains(&"src/app/service.py"),
+        "dependents-following should include importing service.py: {paths:?}"
+    );
+    assert!(
+        pkg.files
+            .iter()
+            .any(|f| f.path == "src/app/service.py"
+                && f.reasons.iter().any(|r| r.contains("dependent"))),
+        "service.py should cite the dependent reason"
+    );
+}
+
+#[test]
+fn context_does_not_flood_dependents_of_hubs() {
+    let root = temp_root("ctx_deprev_hub");
+    // a shared module imported by many files must not pull all its dependents in.
+    write(&root, "src/db.py", "def connect():\n    return 'db'\n");
+    for i in 0..60 {
+        write(
+            &root,
+            &format!("src/mod{i}/uses.py"),
+            &format!(
+                "from src.db import connect\nclass M{i}:\n    def run(self):\n        return connect()\n"
+            ),
+        );
+    }
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg = ctx::context::build_context(&db, &root, "update db module", &config, false).unwrap();
+    let deps: Vec<&str> = pkg
+        .files
+        .iter()
+        .map(|f| f.path.as_str())
+        .filter(|p| p.contains("uses.py"))
+        .collect();
+    assert!(
+        deps.len() < 10,
+        "hub dependents must be capped, got {deps:?}"
+    );
+}
+
+#[test]
+fn context_follows_integration_point_dependents_of_oversized_hub() {
+    let root = temp_root("ctx_deprev_bighub");
+    // A hub imported by many LEAF modules, plus one genuine integration point
+    // (a context provider) that is itself imported by several components.
+    // Replacing the hub's contract must surface the context even though the
+    // hub has far more than MAX_FOLLOW_DEPENDENTS dependents: the leaf modules
+    // are capped, the integration point is followed.
+    write(
+        &root,
+        "web/src/api/client.ts",
+        "export class ApiClient {\n  async get<T>(path: string): Promise<T> { return {} as T }\n}\nexport const api = new ApiClient();\n",
+    );
+    write(
+        &root,
+        "web/src/context/AuthContext.tsx",
+        "import { api } from '../api/client';\nexport function AuthProvider() {\n  return api.get('/me');\n}\n",
+    );
+    for i in 0..50 {
+        write(
+            &root,
+            &format!("web/src/components/c{i}.tsx"),
+            &format!("import {{ AuthProvider }} from '../context/AuthContext';\nexport const C{i} = AuthProvider;\n"),
+        );
+    }
+    for i in 0..60 {
+        write(
+            &root,
+            &format!("web/src/api/module{i}.api.ts"),
+            &format!(
+                "import {{ api }} from './client';\nexport const module{i}Api = {{\n  fetch() {{ return api.get<{{}}>('/m{i}'); }},\n}};\n"
+            ),
+        );
+    }
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg =
+        ctx::context::build_context(&db, &root, "Replace API client", &config, false).unwrap();
+    let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        paths.contains(&"web/src/context/AuthContext.tsx"),
+        "integration-point dependent must be followed despite oversized hub: {paths:?}"
+    );
+    let leaves: Vec<&str> = pkg
+        .files
+        .iter()
+        .map(|f| f.path.as_str())
+        .filter(|p| p.contains("module") && p.contains(".api.ts"))
+        .collect();
+    assert!(
+        leaves.len() < 60,
+        "leaf dependents of oversized hub must stay capped below the full 60: {leaves:?}"
+    );
+}
+
+#[test]
+fn context_does_not_match_substrings_across_word_boundaries() {
+    let root = temp_root("ctx_substr");
+    // "warehouseResult1004" contains the letter sequence "user" mid-word
+    // ("houser" + "esult") but is NOT about users. A "user" task must not
+    // drag it in via naive substring matching.
+    write(
+        &root,
+        "src/db/user.model.ts",
+        "export class User {\n  id: number\n}\n",
+    );
+    write(
+        &root,
+        "src/warehouse/warehouseResult1004.ts",
+        "export interface WarehouseResult1004 {\n  ok: boolean\n  total: number\n}\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg =
+        ctx::context::build_context(&db, &root, "change the user model", &config, false).unwrap();
+    let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        paths.contains(&"src/db/user.model.ts"),
+        "user.model.ts relevant: {paths:?}"
+    );
+    assert!(
+        !paths.contains(&"src/warehouse/warehouseResult1004.ts"),
+        "substring 'user' in warehouseResult1004 must not match, got {paths:?}"
+    );
+    assert!(
+        !pkg.relevant_symbols
+            .iter()
+            .any(|s| s.name.contains("WarehouseResult")),
+        "WarehouseResult1004 symbol must not be relevant: {:?}",
+        pkg.relevant_symbols
+            .iter()
+            .map(|s| &s.name)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn context_does_not_flood_hub_with_generic_keyword() {
+    let root = temp_root("ctx_idf");
+    // A repo full of structurally-identical `*.api.ts` modules that all import
+    // a shared client, plus one genuine consumer (a React context) that also
+    // imports the client and is itself imported by several components. The
+    // task keyword "api" matches every filler module exactly (symbol name
+    // "module0Api", path segment "api"); without IDF dampening those fillers
+    // flood the package and crowd out the real consumer.
+    write(
+        &root,
+        "web/src/api/client.ts",
+        "export class ApiClient {\n  async get<T>(path: string): Promise<T> { return {} as T }\n}\nexport const api = new ApiClient();\n",
+    );
+    write(
+        &root,
+        "web/src/context/AuthContext.tsx",
+        "import { api } from '../api/client';\nexport function AuthProvider() {\n  return api.get('/me');\n}\n",
+    );
+    for i in 0..30 {
+        write(
+            &root,
+            &format!("web/src/components/c{i}.tsx"),
+            &format!("import {{ AuthProvider }} from '../context/AuthContext';\nexport const C{i} = AuthProvider;\n"),
+        );
+    }
+    for i in 0..30 {
+        write(
+            &root,
+            &format!("web/src/api/module{i}.api.ts"),
+            &format!(
+                "import {{ api }} from './client';\nexport const module{i}Api = {{\n  fetch() {{ return api.get<{{}}>('/m{i}'); }},\n}};\n"
+            ),
+        );
+    }
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg =
+        ctx::context::build_context(&db, &root, "Replace API client", &config, false).unwrap();
+    let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        paths.contains(&"web/src/api/client.ts"),
+        "client.ts relevant: {paths:?}"
+    );
+    assert!(
+        paths.contains(&"web/src/context/AuthContext.tsx"),
+        "generic keyword 'api' must not crowd out the genuine dependent, got {paths:?}"
+    );
+}
+
+#[test]
+fn context_file_included_via_symbol_match_keeps_reasons() {
+    let root = temp_root("ctx_reasons");
+    // A file whose only relevance is a symbol match — its path shares no task
+    // keyword, no framework/hub/git signals apply. It must still be scored and
+    // must surface *why* (the symbol reason) instead of an unexplained empty
+    // "reasons" list, so the package stays explainable.
+    write(
+        &root,
+        "src/modules/admin/admin.controller.ts",
+        "export async function promoteUser(userId: string): Promise<void> {}\nexport async function demoteUser(userId: string): Promise<void> {}\n",
+    );
+    write(
+        &root,
+        "src/modules/admin/admin.routes.ts",
+        "import { promoteUser } from './admin.controller';\nexport const routes = [promoteUser];\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let pkg =
+        ctx::context::build_context(&db, &root, "Change user schema", &config, false).unwrap();
+    let file = pkg
+        .files
+        .iter()
+        .find(|f| f.path == "src/modules/admin/admin.controller.ts");
+    assert!(
+        file.is_some(),
+        "symbol-matched file must be included: {:?}",
+        pkg.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>()
+    );
+    let reasons = file.unwrap().reasons.join("; ");
+    assert!(
+        reasons.contains("promoteUser") || reasons.contains("user"),
+        "reasons must explain the symbol match, got: {reasons:?}"
     );
 }
 
@@ -754,7 +1456,7 @@ fn changed_reports_deleted_files_as_deleted() {
     std::fs::write(root.join("src/b.ts"), "export function b() { return 2; }\n").unwrap();
     write(&root, "src/new.ts", "export function n() { return 99; }\n");
 
-    let files = ctx::git::changed::changed_files(&git, None).unwrap();
+    let files = ctx::git::changed::changed_files(&git, None, true).unwrap();
     let status = |p: &str| {
         files
             .iter()
@@ -1019,6 +1721,82 @@ fn context_git_changes_considered_is_consultation_flag() {
 }
 
 #[test]
+fn single_ref_diff_uses_merge_base_with_head() {
+    let root = temp_root("diffmb");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["symbolic-ref", "HEAD", "refs/heads/main"])
+        .unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "initial"]).unwrap();
+    let initial = git.run(&["rev-parse", "HEAD"]).unwrap().trim().to_string();
+
+    // Main advances past the fork point.
+    write(
+        &root,
+        "src/main_only.ts",
+        "export function mainOnly() { return 1; }\n",
+    );
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "main advances"]).unwrap();
+
+    // Feature branch forks from the initial commit and adds its own change.
+    git.run(&["checkout", "-q", "-b", "feature", &initial])
+        .unwrap();
+    write(
+        &root,
+        "src/feature_only.ts",
+        "export function featureOnly() { return 2; }\n",
+    );
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "feature change"]).unwrap();
+
+    // Single-ref diff (base=main, head=worktree) must resolve base to the
+    // merge-base with HEAD: it should report the feature branch's own change,
+    // not main's changes since the fork.
+    let d = ctx::git::diff::symbol_diff(&git, Some("main"), None, Some(&root)).unwrap();
+    eprintln!(
+        "DEBUG single-ref base={} files={:?}",
+        d.base,
+        d.files.iter().map(|f| f.path.clone()).collect::<Vec<_>>()
+    );
+    let feature = d
+        .files
+        .iter()
+        .find(|f| f.path == "src/feature_only.ts")
+        .expect("feature_only.ts in diff");
+    assert!(
+        feature
+            .symbols
+            .iter()
+            .any(|s| s.status == "Added" && s.name == "featureOnly"),
+        "feature branch's own change is Added: {:?}",
+        feature
+            .symbols
+            .iter()
+            .map(|s| (&s.status, &s.name))
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        d.files.iter().all(|f| f.path != "src/main_only.ts"),
+        "main's post-fork change must NOT appear in a single-ref diff: {:?}",
+        d.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>()
+    );
+
+    // Two-ref diff (main..feature) still shows both sides directly.
+    let d2 = ctx::git::diff::symbol_diff(&git, Some("main"), Some("feature"), Some(&root)).unwrap();
+    assert!(
+        d2.files.iter().any(|f| f.path == "src/main_only.ts"),
+        "two-ref diff includes main's file: {:?}",
+        d2.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn diff_respects_explicit_head_ref() {
     let root = temp_root("diffhead");
     write(&root, "src/a.ts", "export function one() { return 1; }\n");
@@ -1070,4 +1848,740 @@ fn diff_respects_explicit_head_ref() {
         d1.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>()
     );
     assert_eq!(d1.head, "HEAD", "head label is the explicit ref");
+}
+
+#[test]
+fn single_ref_diff_excludes_untracked_files() {
+    // `ctx diff <ref>` must match `git diff <ref>`: untracked files are
+    // visible to `git status` but NOT to `git diff`, so they must not appear
+    // in a diff even though `ctx changed` (status semantics) reports them.
+    let root = temp_root("diffuntracked");
+    write(&root, "src/a.ts", "export function one() { return 1; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "one"]).unwrap();
+
+    // untracked file, plus a tracked modification
+    write(
+        &root,
+        "src/new.ts",
+        "export function fresh() { return 2; }\n",
+    );
+    write(
+        &root,
+        "src/a.ts",
+        "export function one() { return 1; }\nexport function two() { return 2; }\n",
+    );
+
+    let d = ctx::git::diff::symbol_diff(&git, Some("HEAD"), None, Some(&root)).unwrap();
+    let paths: Vec<&str> = d.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        !paths.contains(&"src/new.ts"),
+        "untracked file must not appear in diff: {paths:?}"
+    );
+    assert!(
+        paths.contains(&"src/a.ts"),
+        "tracked modification appears in diff: {paths:?}"
+    );
+
+    // `ctx changed` (git-status semantics) still reports the untracked file.
+    let changed = ctx::git::changed::changed_files(&git, None, true).unwrap();
+    let cp: Vec<&str> = changed.iter().map(|c| c.path.as_str()).collect();
+    assert!(
+        cp.contains(&"src/new.ts"),
+        "changed reports untracked: {cp:?}"
+    );
+}
+
+#[test]
+fn changed_files_untracked_flag_matches_git_diff_semantics() {
+    let root = temp_root("chuntracked");
+    write(&root, "src/a.ts", "export function one() { return 1; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "one"]).unwrap();
+    write(
+        &root,
+        "src/new.ts",
+        "export function fresh() { return 2; }\n",
+    );
+
+    // status semantics (include_untracked=true) mirrors `git status`.
+    let with = ctx::git::changed::changed_files(&git, Some("HEAD"), true).unwrap();
+    let wpaths: Vec<&str> = with.iter().map(|c| c.path.as_str()).collect();
+    assert!(
+        wpaths.contains(&"src/new.ts"),
+        "status semantics include untracked: {wpaths:?}"
+    );
+
+    // diff semantics (include_untracked=false) mirrors `git diff <ref>`.
+    let without = ctx::git::changed::changed_files(&git, Some("HEAD"), false).unwrap();
+    let npaths: Vec<&str> = without.iter().map(|c| c.path.as_str()).collect();
+    assert!(
+        !npaths.contains(&"src/new.ts"),
+        "diff semantics exclude untracked: {npaths:?}"
+    );
+}
+
+#[test]
+fn renamed_staged_file_reports_rename_status() {
+    // porcelain v1 shows a staged rename as `R  old -> new`; ctx must report
+    // the new path with status R, matching `git status`.
+    let root = temp_root("rename");
+    write(&root, "src/a.ts", "export function one() { return 1; }\n");
+    write(&root, "src/b.ts", "export function two() { return 2; }\n");
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "one"]).unwrap();
+    git.run(&["mv", "src/a.ts", "src/renamed.ts"]).unwrap();
+
+    let files = ctx::git::changed::changed_files(&git, None, true).unwrap();
+    let renamed = files
+        .iter()
+        .find(|f| f.path == "src/renamed.ts")
+        .expect("renamed path present");
+    assert_eq!(renamed.status, "R", "staged rename status: {files:?}");
+    assert_eq!(
+        renamed.old_path.as_deref(),
+        Some("src/a.ts"),
+        "rename keeps source path: {files:?}"
+    );
+    assert!(
+        files.iter().all(|f| f.path != "src/a.ts"),
+        "old path must not be reported separately: {files:?}"
+    );
+}
+
+#[test]
+fn pure_rename_reports_no_symbol_changes() {
+    // A rename with identical content (git R100) is not a symbol change: the
+    // old source must be read from the pre-rename path so nothing is reported
+    // as Added, matching `git diff` which shows no content change.
+    let root = temp_root("rensymbols");
+    write(
+        &root,
+        "src/a.ts",
+        "export function alpha() { return 1; }\nexport function beta() { return 2; }\n",
+    );
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "one"]).unwrap();
+    git.run(&["mv", "src/a.ts", "src/renamed.ts"]).unwrap();
+
+    let d = ctx::git::diff::symbol_diff(&git, Some("HEAD"), None, Some(&root)).unwrap();
+    let renamed = d
+        .files
+        .iter()
+        .find(|f| f.path == "src/renamed.ts")
+        .expect("renamed file in diff");
+    assert_eq!(renamed.status, "R");
+    assert!(
+        renamed.symbols.is_empty(),
+        "pure rename must not report symbol changes: {:?}",
+        renamed
+            .symbols
+            .iter()
+            .map(|s| (&s.status, &s.name))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn rename_with_edit_reads_old_path_for_symbol_diff() {
+    // A committed rename that also edits a function (git reports `R###` with a
+    // similarity score) must diff the old symbols against the pre-rename path:
+    // the edited function is Modified, the untouched one is not Added.
+    let root = temp_root("renedit");
+    // Large file so a single-line edit still clears git's ~50% rename
+    // threshold (a tiny file comes out as D+A, which git also reports).
+    let mut src = String::new();
+    for i in 0..200 {
+        src.push_str(&format!("export function f{i}() {{ return {i}; }}\n"));
+    }
+    write(&root, "src/a.ts", &src);
+    let git = ctx::git::GitRepo { root: root.clone() };
+    git.run(&["init", "-q"]).unwrap();
+    git.run(&["config", "user.email", "qa@example.com"])
+        .unwrap();
+    git.run(&["config", "user.name", "QA"]).unwrap();
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "one"]).unwrap();
+    // rename + edit in a single commit: change only the f0 signature.
+    git.run(&["mv", "src/a.ts", "src/renamed.ts"]).unwrap();
+    let mut edited = String::new();
+    edited.push_str("export function f0(x: number): number { return 0; }\n");
+    for i in 1..200 {
+        edited.push_str(&format!("export function f{i}() {{ return {i}; }}\n"));
+    }
+    write(&root, "src/renamed.ts", &edited);
+    git.run(&["add", "-A"]).unwrap();
+    git.run(&["commit", "-qm", "rename+edit"]).unwrap();
+
+    // confirm git reports this as a rename (not D+A) in a two-ref diff
+    let raw = git
+        .run(&["diff", "--name-status", "HEAD~1", "HEAD"])
+        .unwrap();
+    assert!(
+        raw.lines().any(|l| l.starts_with('R')),
+        "git must report a rename for committed rename+edit: {raw:?}"
+    );
+
+    let d = ctx::git::diff::symbol_diff(&git, Some("HEAD~1"), Some("HEAD"), Some(&root)).unwrap();
+    let renamed = d
+        .files
+        .iter()
+        .find(|f| f.path == "src/renamed.ts")
+        .expect("renamed file in diff");
+    let symbols: Vec<(&str, &str)> = renamed
+        .symbols
+        .iter()
+        .map(|s| (s.status.as_str(), s.name.as_str()))
+        .collect();
+    assert!(
+        symbols.contains(&("Modified", "f0")),
+        "edited symbol reported as Modified: {symbols:?}"
+    );
+    assert!(
+        symbols.len() == 1,
+        "only the edited symbol changes: {symbols:?}"
+    );
+}
+
+#[test]
+fn doctor_identifies_corrupt_database_without_crashing() {
+    // A garbage .ctx/index.db must produce a full report (status CORRUPT,
+    // database.healthy=false, rebuild hint) instead of a bare SQLite error.
+    let root = temp_root("doc_corrupt");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    std::fs::write(root.join(".ctx/index.db"), "this is not a sqlite database").unwrap();
+
+    let report = ctx::commands::doctor::doctor(&root).unwrap();
+    assert_eq!(report.status, "CORRUPT", "status: {:?}", report.status);
+    let db = report.database.expect("database section present");
+    assert!(!db.healthy, "database flagged unhealthy");
+    assert!(
+        report.warnings.iter().any(|w| w.contains("--force")),
+        "warnings suggest --force: {:?}",
+        report.warnings
+    );
+
+    // Human path must exit non-zero (Unhealthy) for CORRUPT too.
+    let t = ctx::output::Term::new(false, true, true);
+    let err = ctx::commands::doctor::cmd_doctor(&root, None, &t).unwrap_err();
+    assert!(
+        matches!(err, ctx::errors::CtxError::Unhealthy(_)),
+        "corrupt doctor must be Unhealthy, got {err:?}"
+    );
+}
+
+#[test]
+fn doctor_identifies_truncated_database_without_crashing() {
+    let root = temp_root("doc_trunc");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+
+    // Truncate the db mid-file: opening may succeed but reads fail.
+    let db_path = root.join(".ctx/index.db");
+    let data = std::fs::read(&db_path).unwrap();
+    std::fs::write(&db_path, &data[..data.len() / 2]).unwrap();
+
+    let report = ctx::commands::doctor::doctor(&root).unwrap();
+    assert_eq!(report.status, "CORRUPT", "status: {:?}", report.status);
+    assert!(!report.database.unwrap().healthy);
+    assert!(
+        report.warnings.iter().any(|w| w.contains("--force")),
+        "warnings suggest --force: {:?}",
+        report.warnings
+    );
+}
+
+#[test]
+fn doctor_reports_invalid_config_instead_of_crashing() {
+    let root = temp_root("doc_badcfg");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    write(&root, ".ctx/config.toml", "[index\nexclude = [");
+
+    let report = ctx::commands::doctor::doctor(&root).unwrap();
+    assert_eq!(report.status, "CONFIG", "status: {:?}", report.status);
+    assert!(
+        report.warnings.iter().any(|w| w.contains("config.toml")),
+        "warnings mention config: {:?}",
+        report.warnings
+    );
+    // The index itself is still healthy; the problem is the config.
+    assert!(report.database.unwrap().healthy);
+
+    let t = ctx::output::Term::new(false, true, true);
+    let err = ctx::commands::doctor::cmd_doctor(&root, None, &t).unwrap_err();
+    assert!(matches!(err, ctx::errors::CtxError::Unhealthy(_)));
+}
+
+#[test]
+fn doctor_warns_when_config_is_missing() {
+    let root = temp_root("doc_missingcfg");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    // run_index does not write config.toml; simulate a config that existed
+    // and was removed by writing one first, then deleting it.
+    write(&root, ".ctx/config.toml", "[index]\n");
+    std::fs::remove_file(root.join(".ctx/config.toml")).unwrap();
+
+    let report = ctx::commands::doctor::doctor(&root).unwrap();
+    assert_eq!(
+        report.status, "READY",
+        "index still healthy: {:?}",
+        report.status
+    );
+    assert!(
+        report.warnings.iter().any(|w| w.contains("missing")),
+        "warnings mention missing config: {:?}",
+        report.warnings
+    );
+}
+
+#[test]
+fn doctor_warns_when_project_directory_missing() {
+    let root = temp_root("doc_missing_dir");
+    // Never create the directory.
+    let report = ctx::commands::doctor::doctor(&root).unwrap();
+    assert_eq!(report.status, "NOT_INITIALIZED");
+    assert!(
+        report.warnings.iter().any(|w| w.contains("does not exist")),
+        "warnings mention missing dir: {:?}",
+        report.warnings
+    );
+}
+
+#[test]
+fn init_hints_force_on_corrupt_index() {
+    let root = temp_root("init_corrupt");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    std::fs::write(root.join(".ctx/index.db"), "garbage bytes").unwrap();
+
+    let t = ctx::output::Term::new(false, true, true);
+    let err = ctx::commands::init::cmd_init(&root, false, None, &t).unwrap_err();
+    assert!(
+        err.to_string().contains("--force"),
+        "non-force init on corrupt index suggests --force, got: {err}"
+    );
+    assert!(
+        err.to_string().contains("corrupt"),
+        "error mentions corruption, got: {err}"
+    );
+
+    // --force must recover.
+    ctx::commands::init::cmd_init(&root, true, None, &t).unwrap();
+    assert!(ctx::graph::database::Database::exists(&root));
+}
+
+#[test]
+fn init_errors_clearly_when_ctx_is_a_file() {
+    let root = temp_root("init_ctxfile");
+    write(&root, "src/a.ts", "export function a() { return 1; }\n");
+    write(&root, ".ctx", "this is a file, not a directory");
+
+    let t = ctx::output::Term::new(false, true, true);
+    let err = ctx::commands::init::cmd_init(&root, false, None, &t).unwrap_err();
+    assert!(
+        err.to_string().contains("not a directory"),
+        "clear error when .ctx is a file, got: {err}"
+    );
+}
+
+// ---- dependency graph regression tests ----
+
+/// Helper: index a project and return the set of internal edges as
+/// `(source, target)` project-relative paths.
+fn internal_edges(root: &std::path::Path) -> std::collections::BTreeSet<(String, String)> {
+    let config = Config::default();
+    run_index(root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(root).unwrap();
+    let mut edges = std::collections::BTreeSet::new();
+    let all = db.all_files().unwrap();
+    let path_of: std::collections::HashMap<i64, String> =
+        all.iter().map(|f| (f.id, f.path.clone())).collect();
+    for dep in db
+        .conn()
+        .prepare("SELECT source_file_id, target_file_id FROM dependencies WHERE target_file_id IS NOT NULL")
+        .unwrap()
+        .query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+    {
+        if let (Some(s), Some(t)) = (path_of.get(&dep.0), path_of.get(&dep.1)) {
+            edges.insert((s.clone(), t.clone()));
+        }
+    }
+    edges
+}
+
+#[test]
+fn python_relative_and_package_imports_resolve_internally() {
+    let root = temp_root("dep_py_rel");
+    write(&root, "src/pkg/__init__.py", "");
+    write(&root, "src/pkg/db.py", "def connect():\n    return 'db'\n");
+    write(&root, "src/pkg/models/__init__.py", "");
+    write(
+        &root,
+        "src/pkg/models/user.py",
+        "from .. import db\n\ndef get_user():\n    return db.connect()\n",
+    );
+    write(&root, "src/pkg/api/__init__.py", "");
+    write(
+        &root,
+        "src/pkg/api/client.py",
+        "from ..models.user import get_user\n\ndef client():\n    return get_user()\n",
+    );
+    write(
+        &root,
+        "src/pkg/top.py",
+        "from src.pkg.models import user\n\ndef top():\n    return user.get_user()\n",
+    );
+
+    let edges = internal_edges(&root);
+    assert!(
+        edges.contains(&("src/pkg/models/user.py".into(), "src/pkg/db.py".into())),
+        "from .. import db -> db.py: {edges:?}"
+    );
+    assert!(
+        edges.contains(&(
+            "src/pkg/api/client.py".into(),
+            "src/pkg/models/user.py".into()
+        )),
+        "from ..models.user import get_user -> user.py: {edges:?}"
+    );
+    assert!(
+        edges.contains(&("src/pkg/top.py".into(), "src/pkg/models/__init__.py".into())),
+        "from src.pkg.models import user -> package __init__.py: {edges:?}"
+    );
+}
+
+#[test]
+fn typescript_dynamic_import_and_require_resolve_internally() {
+    let root = temp_root("dep_ts_dynamic");
+    write(
+        &root,
+        "src/dyn.ts",
+        "export async function dyn() {\n  const m = await import(\"./lazy\");\n  return m.lazy();\n}\n",
+    );
+    write(
+        &root,
+        "src/lazy.ts",
+        "export function lazy() { return 'lazy'; }\n",
+    );
+    write(
+        &root,
+        "src/req.ts",
+        "const m = require(\"./cjs\");\nexport const v = m.v;\n",
+    );
+    write(&root, "src/cjs.js", "module.exports = { v: 1 };\n");
+
+    let edges = internal_edges(&root);
+    assert!(
+        edges.contains(&("src/dyn.ts".into(), "src/lazy.ts".into())),
+        "dynamic import(\"./lazy\"): {edges:?}"
+    );
+    assert!(
+        edges.contains(&("src/req.ts".into(), "src/cjs.js".into())),
+        "require(\"./cjs\"): {edges:?}"
+    );
+}
+
+#[test]
+fn typescript_alias_import_resolves_via_src() {
+    let root = temp_root("dep_ts_alias");
+    write(
+        &root,
+        "src/alias.ts",
+        "import { target } from \"@/alias/target\";\nexport function alias() { return target(); }\n",
+    );
+    write(
+        &root,
+        "src/alias/target.ts",
+        "export function target() { return 't'; }\n",
+    );
+
+    let edges = internal_edges(&root);
+    assert!(
+        edges.contains(&("src/alias.ts".into(), "src/alias/target.ts".into())),
+        "@/alias/target should resolve via src/: {edges:?}"
+    );
+}
+
+#[test]
+fn typescript_workspace_package_resolves_cross_package() {
+    let root = temp_root("dep_ts_workspace");
+    write(
+        &root,
+        "package.json",
+        r#"{ "name": "root", "workspaces": ["packages/*"] }"#,
+    );
+    write(
+        &root,
+        "packages/core/package.json",
+        r#"{ "name": "@acme/core", "main": "src/index.ts" }"#,
+    );
+    write(
+        &root,
+        "packages/core/src/index.ts",
+        "export function coreFn() { return 'core'; }\n",
+    );
+    write(
+        &root,
+        "packages/app/package.json",
+        r#"{ "name": "@acme/app", "dependencies": { "@acme/core": "*" } }"#,
+    );
+    write(
+        &root,
+        "packages/app/src/main.ts",
+        "import { coreFn } from \"@acme/core\";\nexport function app() { return coreFn(); }\n",
+    );
+
+    let edges = internal_edges(&root);
+    assert!(
+        edges.contains(&(
+            "packages/app/src/main.ts".into(),
+            "packages/core/src/index.ts".into()
+        )),
+        "workspace cross-package dep: {edges:?}"
+    );
+}
+
+#[test]
+fn typescript_barrel_index_and_reexport_resolve() {
+    let root = temp_root("dep_ts_barrel");
+    write(&root, "src/barrel/one.ts", "export const one = 1;\n");
+    write(&root, "src/barrel/two.ts", "export const two = 2;\n");
+    write(
+        &root,
+        "src/barrel/index.ts",
+        "export * from \"./one\";\nexport { two } from \"./two\";\n",
+    );
+    write(
+        &root,
+        "src/barrel-consumer.ts",
+        "import { one, two } from \"./barrel\";\nexport const sum = one + two;\n",
+    );
+    write(
+        &root,
+        "src/reexport/main.ts",
+        "export { x } from \"./mod\";\n",
+    );
+    write(&root, "src/reexport/mod.ts", "export const x = 1;\n");
+
+    let edges = internal_edges(&root);
+    assert!(
+        edges.contains(&("src/barrel/index.ts".into(), "src/barrel/one.ts".into())),
+        "barrel index -> one: {edges:?}"
+    );
+    assert!(
+        edges.contains(&("src/barrel/index.ts".into(), "src/barrel/two.ts".into())),
+        "barrel index -> two: {edges:?}"
+    );
+    assert!(
+        edges.contains(&(
+            "src/barrel-consumer.ts".into(),
+            "src/barrel/index.ts".into()
+        )),
+        "consumer -> barrel index: {edges:?}"
+    );
+    assert!(
+        edges.contains(&("src/reexport/main.ts".into(), "src/reexport/mod.ts".into())),
+        "re-export -> mod: {edges:?}"
+    );
+}
+
+#[test]
+fn go_module_relative_import_resolves_internally() {
+    let root = temp_root("dep_go_mod");
+    write(&root, "go.mod", "module example.com/ctxdeps\n\ngo 1.21\n");
+    write(
+        &root,
+        "main.go",
+        "package main\n\nimport (\n\t\"example.com/ctxdeps/models\"\n)\n\nfunc main() {\n\tmodels.Run()\n}\n",
+    );
+    write(
+        &root,
+        "models/models.go",
+        "package models\n\nimport \"example.com/ctxdeps/store\"\n\nfunc Run() {\n\tstore.Store()\n}\n",
+    );
+    write(
+        &root,
+        "store/store.go",
+        "package store\n\nfunc Store() {}\n",
+    );
+
+    let edges = internal_edges(&root);
+    assert!(
+        edges.contains(&("main.go".into(), "models/models.go".into())),
+        "main -> models: {edges:?}"
+    );
+    assert!(
+        edges.contains(&("models/models.go".into(), "store/store.go".into())),
+        "models -> store: {edges:?}"
+    );
+}
+
+#[test]
+fn rust_use_source_raw_is_clean_path_not_statement() {
+    let root = Path::new(".");
+    let src = "use serde::Serialize;\nuse std::collections::HashMap;\n";
+    let parsed = parse_source(ctx::lang::LanguageId::Rust, src, "ext.rs", root).unwrap();
+    let serde_dep = parsed
+        .dependencies
+        .iter()
+        .find(|d| d.source_raw == "serde::Serialize")
+        .expect("serde dep with clean source_raw");
+    assert!(matches!(
+        serde_dep.resolved,
+        ResolvedDependency::External(_)
+    ));
+    let std_dep = parsed
+        .dependencies
+        .iter()
+        .find(|d| d.source_raw == "std::collections::HashMap")
+        .expect("std dep with clean source_raw");
+    assert!(matches!(std_dep.resolved, ResolvedDependency::External(_)));
+}
+
+#[test]
+fn python_import_os_classifies_external_not_unresolved() {
+    let root = Path::new(".");
+    let src = "import os\nimport requests\nimport totally_missing_module\n";
+    let parsed = parse_source(ctx::lang::LanguageId::Python, src, "ext.py", root).unwrap();
+    for dep in &parsed.dependencies {
+        assert!(
+            matches!(dep.resolved, ResolvedDependency::External(_)),
+            "python bare module {dep:?} should be External"
+        );
+    }
+}
+
+#[test]
+fn python_relative_import_of_missing_module_is_unresolved() {
+    let root = Path::new(".");
+    let src = "from . import missing_module\n";
+    let parsed = parse_source(ctx::lang::LanguageId::Python, src, "x.py", root).unwrap();
+    assert!(
+        parsed
+            .dependencies
+            .iter()
+            .any(|d| matches!(d.resolved, ResolvedDependency::Unresolved(_))),
+        "relative import of missing module is Unresolved, got {:?}",
+        parsed.dependencies
+    );
+}
+
+#[test]
+fn impact_analysis_walks_indirect_dependents_and_is_cycle_safe() {
+    let root = temp_root("dep_impact");
+    write(
+        &root,
+        "a.ts",
+        "import { b } from './b';\nexport function a() { return b(); }\n",
+    );
+    write(
+        &root,
+        "b.ts",
+        "import { c } from './c';\nexport function b() { return c(); }\n",
+    );
+    write(
+        &root,
+        "c.ts",
+        "import { d } from './d';\nexport function c() { return d(); }\n",
+    );
+    write(&root, "d.ts", "export function d() { return 'd'; }\n");
+
+    // cycle: e -> f -> g -> e
+    write(
+        &root,
+        "e.ts",
+        "import { f } from './f';\nexport function e() { return f(); }\n",
+    );
+    write(
+        &root,
+        "f.ts",
+        "import { g } from './g';\nexport function f() { return g(); }\n",
+    );
+    write(
+        &root,
+        "g.ts",
+        "import { e } from './e';\nexport function g() { return e(); }\n",
+    );
+
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    let (path, id, _) = ctx::graph::impact::resolve_target(&db, "d.ts")
+        .unwrap()
+        .expect("d.ts exists");
+    assert_eq!(path, "d.ts");
+    let report = ctx::graph::impact::impact(&db, &path, id, None, 5).unwrap();
+    let direct: Vec<&str> = report.direct.iter().map(|f| f.path.as_str()).collect();
+    let indirect: Vec<&str> = report.indirect.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        direct.contains(&"c.ts"),
+        "c.ts is a direct dependent: {direct:?}"
+    );
+    assert!(indirect.contains(&"b.ts"), "b.ts indirect: {indirect:?}");
+    assert!(indirect.contains(&"a.ts"), "a.ts indirect: {indirect:?}");
+
+    // Cycle must not loop forever; BFS visits each file once.
+    let (path, id, _) = ctx::graph::impact::resolve_target(&db, "e.ts")
+        .unwrap()
+        .expect("e.ts exists");
+    let report = ctx::graph::impact::impact(&db, &path, id, None, 10).unwrap();
+    let all: Vec<&str> = report
+        .direct
+        .iter()
+        .chain(report.indirect.iter())
+        .map(|f| f.path.as_str())
+        .collect();
+    assert_eq!(all.len(), 2, "cycle reachable set is finite: {all:?}");
+    assert!(all.contains(&"f.ts") && all.contains(&"g.ts"));
+}
+
+#[test]
+fn duplicate_imports_do_not_duplicate_edges() {
+    let root = temp_root("dep_dupes");
+    write(
+        &root,
+        "a.ts",
+        "import { b } from './b';\nimport { c } from './c';\n",
+    );
+    write(&root, "b.ts", "export function b() { return 1; }\n");
+    write(&root, "c.ts", "export function c() { return 2; }\n");
+
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+    let a = db.file_by_path("a.ts").unwrap().unwrap();
+    let deps = db.dependencies_of(a.id).unwrap();
+    assert_eq!(deps.len(), 2, "exactly two import edges: {deps:?}");
 }

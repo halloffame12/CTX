@@ -90,6 +90,21 @@ impl super::traits::LanguageParser for PythonParser {
                 if module.is_empty() && dots == 0 && names.is_empty() {
                     return;
                 }
+                // `from .. import db` (or `from . import x`): the module part is
+                // empty and the imported names ARE the submodules to resolve.
+                if dots > 0 && module.is_empty() && !names.is_empty() {
+                    for name in &names {
+                        let resolved = python_relative_resolution(root, current_rel, name, dots)
+                            .unwrap_or_else(|| ResolvedDependency::Unresolved(name.clone()));
+                        out.push(Dependency {
+                            imported_symbol: Some(name.clone()),
+                            dependency_type: DependencyType::PyFrom,
+                            source_raw: name.clone(),
+                            resolved,
+                        });
+                    }
+                    return;
+                }
                 let resolved = if dots > 0 {
                     python_relative_resolution(root, current_rel, &module, dots)
                         .unwrap_or_else(|| ResolvedDependency::Unresolved(module.clone()))
@@ -125,16 +140,60 @@ impl super::traits::LanguageParser for PythonParser {
     fn skeleton(&self, source: &str, _current_rel: &str) -> CtxResult<String> {
         let tree = self.parse_tree(source)?;
         let root = tree.root_node();
+        // Malformed code: degrade gracefully with a bounded declaration-only
+        // skeleton rather than emit a half-spliced body or dump full source.
+        if crate::parser::util::has_errors(&root) {
+            return Ok(crate::parser::util::fallback_skeleton(source, 80));
+        }
         let mut ranges: Vec<(usize, usize, String)> = Vec::new();
         crate::parser::util::walk(&root, &mut |n| {
+            // Reduce function/method implementation bodies. Keep a leading
+            // docstring: it is documentation, not implementation detail.
             if (n.kind() == "function_definition" || n.kind() == "async_function_definition")
                 && let Some(body) = n.child_by_field_name("body")
                 && body.kind() == "block"
             {
                 let r = body.byte_range();
                 if r.end > r.start {
-                    let indent = first_line_indent(source, r.start);
-                    ranges.push((r.start, r.end, format!("\n{indent}...")));
+                    // Indent the placeholder to match the first statement in
+                    // the body (block.start may sit on the newline after `:`).
+                    let indent = body
+                        .named_child(0)
+                        .map(|st| first_line_indent(source, st.start_byte()))
+                        .unwrap_or_else(|| first_line_indent(source, r.start));
+                    let mut start = r.start;
+                    if let Some(first) = body.named_child(0)
+                        && first.kind() == "expression_statement"
+                        && let Some(s) = first.named_child(0)
+                        && s.kind() == "string"
+                    {
+                        start = s.end_byte();
+                    }
+                    if start < r.end {
+                        ranges.push((start, r.end, format!("\n{indent}...")));
+                    }
+                }
+            }
+            // Reduce the bootstrap block of `if __name__ == "__main__":` while
+            // keeping the guard line (which marks the entry point).
+            if n.kind() == "if_statement"
+                && let Some(cond) = n.child_by_field_name("condition")
+                && let Some(cons) = n.child_by_field_name("consequence")
+                && cons.kind() == "block"
+            {
+                let cond_text =
+                    crate::parser::util::collapse_ws(&node_text(&cond, source.as_bytes()));
+                if cond_text == "__name__ == \"__main__\""
+                    || cond_text == "\"__main__\" == __name__"
+                {
+                    let r = cons.byte_range();
+                    if r.end > r.start {
+                        let indent = cons
+                            .named_child(0)
+                            .map(|st| first_line_indent(source, st.start_byte()))
+                            .unwrap_or_else(|| first_line_indent(source, r.start));
+                        ranges.push((r.start, r.end, format!("\n{indent}...")));
+                    }
                 }
             }
         });
@@ -168,6 +227,17 @@ impl PythonParser {
                                 | "async_function_definition"
                         )
                     {
+                        self.collect(&c, source, out, container);
+                    }
+                }
+            }
+            "expression_statement" => {
+                // Module/class-level statements (e.g. `X = 1`, `id: int`) wrap
+                // the real assignment in an expression_statement node. We only
+                // ever reach these at module/class scope because function
+                // bodies are never traversed.
+                for i in 0..node.named_child_count() as u32 {
+                    if let Some(c) = node.named_child(i) {
                         self.collect(&c, source, out, container);
                     }
                 }
@@ -219,7 +289,7 @@ impl PythonParser {
                 }
             }
             "assignment" | "augmented_assignment" | "named_expression" => {
-                if (container.is_some() || node.parent().map(|p| p.kind()) == Some("module"))
+                if (container.is_some() || is_module_scope(node))
                     && let Some(left) = node.child_by_field_name("left")
                     && left.kind() == "identifier"
                 {
@@ -262,8 +332,29 @@ fn left_node<'t>(node: &Node<'t>, _source: &str) -> Node<'t> {
     node.child_by_field_name("left").unwrap_or(*node)
 }
 
+/// True when the node lives at module scope (its ancestor chain reaches
+/// `module` without crossing a function or class definition). Function bodies
+/// are never traversed by collect, but this guard keeps the assignment arm
+/// from ever indexing locals if traversal is widened later.
+fn is_module_scope(node: &Node) -> bool {
+    let mut cur = node.parent();
+    while let Some(p) = cur {
+        match p.kind() {
+            "module" => return true,
+            "class_definition" | "function_definition" | "async_function_definition" => {
+                return false;
+            }
+            _ => cur = p.parent(),
+        }
+    }
+    false
+}
+
 fn first_line_indent(source: &str, start: usize) -> String {
-    let rest = &source[start..];
+    // Walk back to the start of the line containing `start` so the leading
+    // whitespace of the statement (not just its first non-space char) counts.
+    let line_start = source[..start].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let rest = &source[line_start..];
     let first_line = rest.split('\n').next().unwrap_or("");
     let indent: String = first_line
         .chars()
@@ -339,6 +430,15 @@ fn from_names(node: &Node, source: &str) -> Vec<String> {
             }
             "wildcard_import" => {
                 return Vec::new(); // `import *` → no names
+            }
+            "dotted_name" | "aliased_import" => {
+                // Direct `name`-field children (e.g. `from .. import db`,
+                // `from . import helper`, `from pkg import x, y`).
+                if let Some("name") = node.field_name_for_named_child(i) {
+                    let text = node_text(&c, source.as_bytes());
+                    let name = text.split(" as ").next().unwrap_or(&text).to_string();
+                    names.push(name);
+                }
             }
             _ => {}
         }

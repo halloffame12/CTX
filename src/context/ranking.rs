@@ -118,25 +118,114 @@ pub fn tokenize(text: &str) -> Vec<String> {
     words
 }
 
+/// Split an identifier or path into lowercase word tokens, breaking on
+/// non-alphanumeric characters, camelCase boundaries, and letter→digit
+/// boundaries ("WarehouseResult1004" → ["warehouse","result","1004"]).
+pub fn word_tokens(text: &str) -> Vec<String> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut tokens = Vec::new();
+    let mut cur = String::new();
+    for (i, &c) in chars.iter().enumerate() {
+        if !c.is_alphanumeric() {
+            if !cur.is_empty() {
+                tokens.push(cur.to_lowercase());
+                cur.clear();
+            }
+            continue;
+        }
+        let camel = c.is_ascii_uppercase()
+            && i > 0
+            && (chars[i - 1].is_ascii_lowercase() || chars[i - 1].is_ascii_digit());
+        let digit = c.is_ascii_digit() && i > 0 && chars[i - 1].is_ascii_lowercase();
+        if (camel || digit) && !cur.is_empty() {
+            tokens.push(cur.to_lowercase());
+            cur.clear();
+        }
+        cur.push(c);
+    }
+    if !cur.is_empty() {
+        tokens.push(cur.to_lowercase());
+    }
+    tokens
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) enum TokenMatch {
+    None,
+    Prefix,
+    Extended,
+    Exact,
+}
+
+/// True when two words share a meaningful stem ("authenticate" and
+/// "authentication" share "authenticat"; "login" and "logistics" share only
+/// the 4-letter run "logi", which is NOT enough). Requires a shared prefix of
+/// at least 5 characters — long enough to be a real inflection, short enough
+/// to tolerate prefix extension like config ↔ configuration.
+fn stem_match(a: &str, b: &str) -> bool {
+    let common = a.chars().zip(b.chars()).take_while(|(x, y)| x == y).count();
+    common >= 5
+}
+
+/// Strongest way a keyword hits a set of word tokens. An exact word match
+/// beats a substring-at-a-word-edge match ("reporting" for "report"), which
+/// beats a shared-stem match ("authenticate" for "authentication"). A keyword
+/// is deliberately never matched against the middle of a concatenated
+/// identifier ("user" must not match "warehouseResult"), so CamelCase noise
+/// like `WarehouseResult1004` can never flood a package for a "user" task.
+pub(crate) fn best_token_match(tokens: &[String], k: &str) -> TokenMatch {
+    let mut best = TokenMatch::None;
+    for t in tokens {
+        if t == k {
+            return TokenMatch::Exact;
+        }
+        let at_edge = (t.starts_with(k) || t.ends_with(k)) && k.len() >= 4 && t.len() > k.len();
+        let shared_stem = stem_match(t, k);
+        best = if at_edge {
+            TokenMatch::Extended
+        } else if shared_stem {
+            best.max(TokenMatch::Prefix)
+        } else {
+            best
+        };
+    }
+    best
+}
+
 /// Score a single (symbol name, signature, path) candidate against keywords.
 pub fn score_symbol(name: &str, signature: &str, path: &str, keywords: &[String]) -> f64 {
+    let ones: Vec<f64> = vec![1.0; keywords.len()];
+    score_symbol_w(name, signature, path, keywords, &ones)
+}
+
+/// Weighted variant of [`score_symbol`]. `weights` runs parallel to `keywords`
+/// and scales every contribution of that keyword, so a keyword that matches a
+/// large fraction of the corpus (e.g. a structural term like "api" in a repo
+/// with hundreds of `*.api.ts` modules) contributes proportionally less.
+pub fn score_symbol_w(
+    name: &str,
+    signature: &str,
+    path: &str,
+    keywords: &[String],
+    weights: &[f64],
+) -> f64 {
+    let name_tokens = word_tokens(name);
+    let sig_tokens = word_tokens(signature);
+    let path_tokens = word_tokens(path);
     let mut score = 0.0;
-    let name_lower = name.to_lowercase();
-    let sig_lower = signature.to_lowercase();
-    let path_lower = path.to_lowercase();
-    for k in keywords {
-        if name_lower == *k {
-            score += 6.0;
-        } else if name_lower.contains(k.as_str()) {
-            score += 3.0;
-        } else if prefix_match(&name_lower, k.as_str()) {
-            score += 2.0;
+    for (i, k) in keywords.iter().enumerate() {
+        let w = weights.get(i).copied().unwrap_or(1.0);
+        score += match best_token_match(&name_tokens, k) {
+            TokenMatch::Exact => 6.0,
+            TokenMatch::Extended => 3.0,
+            TokenMatch::Prefix => 2.0,
+            TokenMatch::None => 0.0,
+        } * w;
+        if best_token_match(&sig_tokens, k) != TokenMatch::None {
+            score += 1.0 * w;
         }
-        if sig_lower.contains(k.as_str()) {
-            score += 1.0;
-        }
-        if path_lower.contains(k.as_str()) {
-            score += 1.0;
+        if best_token_match(&path_tokens, k) != TokenMatch::None {
+            score += 1.0 * w;
         }
     }
     score
@@ -146,6 +235,7 @@ pub fn score_symbol(name: &str, signature: &str, path: &str, keywords: &[String]
 /// the two strings share a common prefix of at least 4 characters — enough to
 /// be a meaningful stem. Only applied to the symbol name, never to keywords
 /// that are pure stop-ish noise.
+#[cfg(test)]
 fn prefix_match(a: &str, b: &str) -> bool {
     let common = a.chars().zip(b.chars()).take_while(|(x, y)| x == y).count();
     common >= 4
@@ -205,13 +295,14 @@ pub fn expand_keywords(keywords: &[String]) -> Vec<String> {
     let mut out: Vec<String> = keywords.to_vec();
     for k in keywords {
         let k_lower = k.to_lowercase();
+        let k_tokens = word_tokens(&k_lower);
         for group in SYNONYM_GROUPS {
             let active = group.iter().any(|member| {
                 let m = member.to_lowercase();
+                let m_tokens = word_tokens(&m);
                 m == k_lower
-                    || prefix_match(&m, &k_lower)
-                    || k_lower.contains(&m)
-                    || m.contains(&k_lower)
+                    || best_token_match(&m_tokens, &k_lower) != TokenMatch::None
+                    || best_token_match(&k_tokens, member) != TokenMatch::None
             });
             if active {
                 for member in group.iter() {
@@ -227,25 +318,45 @@ pub fn expand_keywords(keywords: &[String]) -> Vec<String> {
     out
 }
 
+/// IDF-style per-keyword damping weights. A keyword that matches a large
+/// fraction of the corpus carries little signal: in a repo with hundreds of
+/// `*.api.ts` modules, the term "api" matches nearly every file, so its exact
+/// symbol/name/path hits should contribute proportionally less than a rare
+/// term like "auth" that matches a handful of files. `document_frequencies[i]`
+/// is the number of distinct files keyword `i` matches (documents containing
+/// the term). Returns a weight per keyword in [0, 1]; terms matching at most
+/// `RARE` files keep full weight, then the weight falls off linearly so a
+/// generic term matching dozens of files is damped hard.
+pub fn idf_keyword_weights(document_frequencies: &[usize]) -> Vec<f64> {
+    const RARE: f64 = 8.0;
+    document_frequencies
+        .iter()
+        .map(|&df| (RARE / df.max(1) as f64).min(1.0))
+        .collect()
+}
+
 /// Human-readable, explainable reasons a symbol matched the task keywords.
 /// Mirrors [`score_symbol`] so the listed reasons always justify the score.
 pub fn symbol_reasons(name: &str, signature: &str, path: &str, keywords: &[String]) -> Vec<String> {
-    let name_lower = name.to_lowercase();
-    let sig_lower = signature.to_lowercase();
-    let path_lower = path.to_lowercase();
+    let name_tokens = word_tokens(name);
+    let sig_tokens = word_tokens(signature);
+    let path_tokens = word_tokens(path);
     let mut reasons: Vec<String> = Vec::new();
     for k in keywords {
-        if name_lower == *k {
-            reasons.push(format!("exact symbol match `{name}`"));
-        } else if name_lower.contains(k.as_str()) {
-            reasons.push(format!("symbol contains keyword `{k}`"));
-        } else if prefix_match(&name_lower, k.as_str()) {
-            reasons.push(format!("symbol matches `{k}` by prefix"));
+        match best_token_match(&name_tokens, k) {
+            TokenMatch::Exact => reasons.push(format!("exact symbol match `{name}`")),
+            TokenMatch::Extended => reasons.push(format!("symbol contains keyword `{k}`")),
+            TokenMatch::Prefix => reasons.push(format!("symbol matches `{k}` by prefix")),
+            TokenMatch::None => {}
         }
-        if sig_lower.contains(k.as_str()) && !name_lower.contains(k.as_str()) {
+        if best_token_match(&sig_tokens, k) != TokenMatch::None
+            && best_token_match(&name_tokens, k) == TokenMatch::None
+        {
             reasons.push(format!("signature mentions `{k}`"));
         }
-        if path_lower.contains(k.as_str()) && !name_lower.contains(k.as_str()) {
+        if best_token_match(&path_tokens, k) != TokenMatch::None
+            && best_token_match(&name_tokens, k) == TokenMatch::None
+        {
             reasons.push(format!("path matches keyword `{k}`"));
         }
     }
@@ -263,8 +374,9 @@ pub fn file_reasons(
     git_recent: bool,
 ) -> Vec<String> {
     let mut reasons: Vec<String> = Vec::new();
+    let path_tokens = word_tokens(path);
     for k in keywords {
-        if path.to_lowercase().contains(k.as_str()) {
+        if best_token_match(&path_tokens, k) != TokenMatch::None {
             reasons.push(format!("path matches keyword `{k}`"));
         }
     }
@@ -343,11 +455,19 @@ pub fn hub_bonus(dependents_count: i64) -> f64 {
 }
 
 pub fn path_keyword_bonus(path: &str, keywords: &[String]) -> f64 {
-    let lower = path.to_lowercase();
+    let ones: Vec<f64> = vec![1.0; keywords.len()];
+    path_keyword_bonus_w(path, keywords, &ones)
+}
+
+/// Weighted variant of [`path_keyword_bonus`], see [`score_symbol_w`].
+pub fn path_keyword_bonus_w(path: &str, keywords: &[String], weights: &[f64]) -> f64 {
+    let tokens = word_tokens(path);
     keywords
         .iter()
-        .filter(|k| lower.contains(k.as_str()))
-        .count() as f64
+        .enumerate()
+        .filter(|(_, k)| best_token_match(&tokens, k) != TokenMatch::None)
+        .map(|(i, _)| weights.get(i).copied().unwrap_or(1.0))
+        .sum()
 }
 
 #[cfg(test)]
@@ -411,6 +531,24 @@ mod tests {
         let expanded = expand_keywords(&["rate".to_string()]);
         assert!(expanded.contains(&"limit".to_string()), "{expanded:?}");
         assert!(!expanded.contains(&"avatar".to_string()), "{expanded:?}");
+    }
+
+    #[test]
+    fn stem_match_rejects_short_shared_runs() {
+        // "login" and "logistics" share only the 4-letter run "logi".
+        assert!(!stem_match("login", "logistics"));
+        assert!(!stem_match("logistics", "login"));
+        // real inflections survive
+        assert!(stem_match("authenticate", "authentication"));
+        assert!(stem_match("config", "configuration"));
+        assert!(stem_match("verification", "verify"));
+        // keyword "login" must not pull a logistics filler symbol into a package
+        let tokens = vec![
+            "logistics".to_string(),
+            "result".to_string(),
+            "1004".to_string(),
+        ];
+        assert_eq!(best_token_match(&tokens, "login"), TokenMatch::None);
     }
 
     #[test]

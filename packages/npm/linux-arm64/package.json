@@ -1,6 +1,6 @@
 {
   "name": "ctxai-linux-arm64",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "ctx native binary for Linux ARM64",
   "os": [
     "linux"

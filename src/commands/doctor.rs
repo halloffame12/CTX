@@ -96,34 +96,35 @@ pub fn cmd_doctor(cwd: &Path, root_override: Option<&Path>, t: &Term) -> CtxResu
             "  {} .ctx index not found",
             t.style(crate::output::Default::RED, "✗")
         ),
-        true => {
-            println!(
-                "  {} .ctx database {}",
-                t.ok(""),
-                if report.database.as_ref().map(|d| d.healthy).unwrap_or(false) {
-                    "healthy"
-                } else {
-                    "unhealthy"
-                }
-            );
-            println!("  {} {} files indexed", t.ok(""), report.index.files);
-            println!("  {} {} symbols indexed", t.ok(""), report.index.symbols);
-            println!(
-                "  {} {} dependencies indexed",
-                t.ok(""),
-                report.index.dependencies
-            );
-            if report.index.fresh {
-                println!("  {} Index is current", t.ok(""));
-            } else {
+        true => match &report.database {
+            Some(d) if d.healthy => {
+                println!("  {} .ctx database healthy", t.ok(""));
+                println!("  {} {} files indexed", t.ok(""), report.index.files);
+                println!("  {} {} symbols indexed", t.ok(""), report.index.symbols);
                 println!(
-                    "  {} Index is stale ({} files changed, {} new files)",
-                    t.style(crate::output::Default::YELLOW, "⚠"),
-                    report.index.stale_files,
-                    report.index.unindexed_files
+                    "  {} {} dependencies indexed",
+                    t.ok(""),
+                    report.index.dependencies
+                );
+                if report.index.fresh {
+                    println!("  {} Index is current", t.ok(""));
+                } else {
+                    println!(
+                        "  {} Index is stale ({} files changed, {} new files)",
+                        t.style(crate::output::Default::YELLOW, "⚠"),
+                        report.index.stale_files,
+                        report.index.unindexed_files
+                    );
+                }
+            }
+            Some(_) => {
+                println!(
+                    "  {} .ctx database unreadable or corrupted",
+                    t.style(crate::output::Default::RED, "✗")
                 );
             }
-        }
+            None => {}
+        },
     }
 
     println!("Parser support:");
@@ -153,6 +154,20 @@ pub fn cmd_doctor(cwd: &Path, root_override: Option<&Path>, t: &Term) -> CtxResu
                 "Status: STALE — run `ctx init` to re-index"
             )
         ),
+        "CORRUPT" => println!(
+            "{}",
+            t.style(
+                crate::output::Default::RED,
+                "Status: CORRUPT — run `ctx init --force` to rebuild the index"
+            )
+        ),
+        "CONFIG" => println!(
+            "{}",
+            t.style(
+                crate::output::Default::RED,
+                "Status: CONFIG ERROR — fix .ctx/config.toml"
+            )
+        ),
         _ => println!(
             "{}",
             t.style(
@@ -174,15 +189,41 @@ fn doctor_exit(report: &DoctorReport) -> CtxResult<()> {
     }
 }
 
-fn doctor(root: &Path) -> CtxResult<DoctorReport> {
+pub fn doctor(root: &Path) -> CtxResult<DoctorReport> {
     let mut warnings: Vec<String> = Vec::new();
+
+    if !root.is_dir() {
+        warnings.push(format!(
+            "project directory does not exist: {}",
+            root.display()
+        ));
+    }
 
     let git = GitRepo::discover(root)?;
     let git_root = git.as_ref().map(|g| g.root.display().to_string());
 
-    let config = Config::load(root)?;
-
+    let config_path = root.join(".ctx").join("config.toml");
     let initialized = Database::exists(root);
+
+    // An unreadable config must not crash the report: flag it and fall back to
+    // defaults so the user still sees a full diagnosis.
+    let (config, config_ok) = match Config::load(root) {
+        Ok(c) => (c, true),
+        Err(e) => {
+            warnings.push(format!(
+                "could not read {}: {e}; using defaults",
+                config_path.display()
+            ));
+            (Config::default(), false)
+        }
+    };
+    if initialized && !config_path.exists() {
+        warnings.push(format!(
+            "{} missing; using defaults — run `ctx init` to rewrite it",
+            config_path.display()
+        ));
+    }
+
     let mut index = IndexStatus {
         initialized,
         fresh: !initialized,
@@ -193,71 +234,105 @@ fn doctor(root: &Path) -> CtxResult<DoctorReport> {
         unindexed_files: 0,
     };
     let mut database = None;
+    let mut db_corrupt = false;
 
     if initialized {
-        let db = Database::open(root)?;
-        let (files, symbols, deps) = db.stats()?;
-        index.files = files as u64;
-        index.symbols = symbols as u64;
-        index.dependencies = deps as u64;
+        // A corrupt or truncated database must not crash the report: surface
+        // it as an unhealthy database with a rebuild hint instead.
+        let read = (|| -> CtxResult<(i64, i64, i64, bool, i64, usize, usize)> {
+            let db = Database::open(root)?;
+            let (files, symbols, deps) = db.stats()?;
 
-        let healthy = db
-            .conn()
-            .query_row("PRAGMA quick_check", [], |r| r.get::<_, String>(0))
-            .map(|s| s == "ok")
-            .unwrap_or(false);
-        let schema_version = db
-            .conn()
-            .query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
-            .unwrap_or(0);
-        database = Some(DatabaseStatus {
-            healthy,
-            schema_version,
-            path: root
-                .join(crate::graph::database::DB_PATH)
-                .display()
-                .to_string(),
-        });
-        if !healthy {
-            warnings.push("SQLite quick_check reported an unhealthy database; run `ctx init --force` to rebuild it.".into());
-        }
+            let healthy = db
+                .conn()
+                .query_row("PRAGMA quick_check", [], |r| r.get::<_, String>(0))
+                .map(|s| s == "ok")
+                .unwrap_or(false);
+            let schema_version = db
+                .conn()
+                .query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+                .unwrap_or(0);
 
-        // freshness: compare indexed metadata with disk, and discover new files
-        let records = db.all_files()?;
-        let mut indexed: BTreeMap<String, (i64, i64)> = BTreeMap::new();
-        for f in records {
-            indexed.insert(f.path.clone(), (f.mtime, f.size));
-        }
-        let discovered = scan(root, &config).unwrap_or_default();
-        let mut stale = 0usize;
-        let mut unindexed = 0usize;
-        for d in &discovered {
-            match indexed.get(&d.rel_path) {
-                None => unindexed += 1,
-                Some(&(mtime, size)) => {
-                    if mtime != d.mtime || size != d.size {
-                        stale += 1;
+            // freshness: compare indexed metadata with disk, and discover new files
+            let records = db.all_files()?;
+            let mut indexed: BTreeMap<String, (i64, i64)> = BTreeMap::new();
+            for f in records {
+                indexed.insert(f.path.clone(), (f.mtime, f.size));
+            }
+            let discovered = scan(root, &config).unwrap_or_default();
+            let mut stale = 0usize;
+            let mut unindexed = 0usize;
+            for d in &discovered {
+                match indexed.get(&d.rel_path) {
+                    None => unindexed += 1,
+                    Some(&(mtime, size)) => {
+                        if mtime != d.mtime || size != d.size {
+                            stale += 1;
+                        }
                     }
                 }
             }
-        }
-        for path in indexed.keys() {
-            if !root.join(path).exists() {
-                stale += 1;
+            for path in indexed.keys() {
+                if !root.join(path).exists() {
+                    stale += 1;
+                }
+            }
+            Ok((
+                files,
+                symbols,
+                deps,
+                healthy,
+                schema_version,
+                stale,
+                unindexed,
+            ))
+        })();
+
+        match read {
+            Ok((files, symbols, deps, healthy, schema_version, stale, unindexed)) => {
+                index.files = files as u64;
+                index.symbols = symbols as u64;
+                index.dependencies = deps as u64;
+                index.stale_files = stale;
+                index.unindexed_files = unindexed;
+                index.fresh = stale == 0 && unindexed == 0;
+                database = Some(DatabaseStatus {
+                    healthy,
+                    schema_version,
+                    path: root
+                        .join(crate::graph::database::DB_PATH)
+                        .display()
+                        .to_string(),
+                });
+                if !healthy {
+                    warnings.push("SQLite quick_check reported an unhealthy database; run `ctx init --force` to rebuild it.".into());
+                }
+            }
+            Err(e) => {
+                db_corrupt = true;
+                warnings.push(format!(
+                    "could not read {}: {e}; run `ctx init --force` to rebuild the index",
+                    root.join(crate::graph::database::DB_PATH).display()
+                ));
+                database = Some(DatabaseStatus {
+                    healthy: false,
+                    schema_version: 0,
+                    path: root
+                        .join(crate::graph::database::DB_PATH)
+                        .display()
+                        .to_string(),
+                });
             }
         }
-        index.stale_files = stale;
-        index.unindexed_files = unindexed;
-        index.fresh = stale == 0 && unindexed == 0;
     }
 
     let mut languages: Vec<String> = Vec::new();
     if initialized {
-        if let Some(db) = &database {
-            let _ = db;
-        }
-        if let Ok(db) = Database::open(root) {
-            for f in db.all_files()? {
+        if !db_corrupt
+            && let Ok(db) = Database::open(root)
+            && let Ok(records) = db.all_files()
+        {
+            for f in records {
                 if let Some(lang) = f.language
                     && !languages.contains(&lang)
                 {
@@ -289,6 +364,10 @@ fn doctor(root: &Path) -> CtxResult<DoctorReport> {
 
     let status = if !initialized {
         "NOT_INITIALIZED".to_string()
+    } else if db_corrupt {
+        "CORRUPT".to_string()
+    } else if !config_ok {
+        "CONFIG".to_string()
     } else if index.fresh {
         "READY".to_string()
     } else {

@@ -310,3 +310,242 @@ export default function Footer() {
         "component signature kept:\n{s}"
     );
 }
+
+#[test]
+fn malformed_code_yields_bounded_declaration_skeleton() {
+    for (lang, src) in [
+        (
+            LanguageId::TypeScript,
+            "export function broken( {\n  return 1\n}\n",
+        ),
+        (LanguageId::Python, "def broken(:\n    return 1\n"),
+        (LanguageId::Rust, "pub fn broken( {\n    return 1\n}\n"),
+        (
+            LanguageId::Go,
+            "package main\n\nfunc broken( {\n\treturn 1\n}\n",
+        ),
+    ] {
+        let s = skeletonize(lang, src, "x.ext", Path::new(".")).unwrap();
+        assert_ne!(
+            s, src,
+            "malformed skeleton for {lang:?} must NOT dump the full source"
+        );
+        assert!(
+            s.len() < src.len(),
+            "malformed skeleton for {lang:?} must be smaller than source: {s:?}"
+        );
+        assert!(
+            s.contains("broken"),
+            "declaration header preserved for {lang:?}: {s:?}"
+        );
+    }
+}
+
+#[test]
+fn malformed_code_skeleton_never_leaks_body_lines() {
+    // A malformed file whose body carries secret-looking values: the fallback
+    // skeleton must keep the declaration header only, never the body.
+    let src = "function broken( {\n  const config = {\n    password: \"hunter2\",\n    api_key: \"sk-abc123\",\n  };\n";
+    let s = skeletonize(LanguageId::TypeScript, src, "config.ts", Path::new(".")).unwrap();
+    assert!(s.contains("function broken("), "header kept: {s:?}");
+    assert!(
+        !s.contains("hunter2") && !s.contains("sk-abc123"),
+        "body lines must not leak: {s:?}"
+    );
+    assert!(s.len() < src.len(), "bounded: {s:?}");
+}
+
+#[test]
+fn python_docstrings_preserved_in_skel() {
+    let src = r#"
+def documented(a: int) -> int:
+    """Sums with one.
+
+    Detailed explanation that is long.
+    """
+    return a + 1
+"#;
+    let s = skeletonize(LanguageId::Python, src, "x.py", Path::new(".")).unwrap();
+    assert!(s.contains("\"\"\"Sums with one."), "docstring kept:\n{s}");
+    assert!(!s.contains("return a + 1"), "implementation removed:\n{s}");
+}
+
+#[test]
+fn python_main_block_reduced_but_guard_kept() {
+    let src = r#"
+import argparse
+
+def run_server(port: int) -> None:
+    print(f"listening on {port}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8080)
+    args = parser.parse_args()
+    run_server(port=args.port)
+"#;
+    let s = skeletonize(LanguageId::Python, src, "x.py", Path::new(".")).unwrap();
+    assert!(
+        s.contains("if __name__ == \"__main__\":"),
+        "main guard kept:\n{s}"
+    );
+    assert!(
+        !s.contains("parser.add_argument"),
+        "bootstrap body removed:\n{s}"
+    );
+    assert!(
+        !s.contains("args = parser.parse_args()"),
+        "body removed:\n{s}"
+    );
+    assert!(s.contains("..."), "elision present:\n{s}");
+}
+
+#[test]
+fn python_method_placeholder_uses_body_indent() {
+    let src = r#"
+class Config:
+    def load(self, path):
+        """Load config from path."""
+        import json
+        return json.load(f)
+"#;
+    let s = skeletonize(LanguageId::Python, src, "x.py", Path::new(".")).unwrap();
+    // The elision inside the method must be indented at the body depth (8
+    // spaces), not at the class/def depth (4).
+    assert!(
+        s.contains("\n        ..."),
+        "placeholder indented to body depth:\n{s}"
+    );
+    assert!(
+        !s.contains("\n    ...\n"),
+        "no placeholder at def depth:\n{s}"
+    );
+}
+
+#[test]
+fn typescript_accessors_object_methods_default_export() {
+    let src = r#"
+export class Bank {
+  private _balance: number = 0;
+  get balance(): number {
+    return this._balance;
+  }
+  set balance(v: number) {
+    if (v < 0) throw new Error("negative");
+    this._balance = v;
+  }
+  static create(): Bank {
+    return new Bank();
+  }
+}
+export const obj = {
+  greet(msg: string): string {
+    return `${this.name}:${msg}`;
+  },
+};
+"#;
+    let s = skeletonize(LanguageId::TypeScript, src, "x.ts", Path::new(".")).unwrap();
+    assert_balanced(&s);
+    assert!(s.contains("get balance(): number"), "getter kept:\n{s}");
+    assert!(s.contains("set balance(v: number)"), "setter kept:\n{s}");
+    assert!(s.contains("static create(): Bank"), "static kept:\n{s}");
+    assert!(
+        s.contains("greet(msg: string): string"),
+        "object method kept:\n{s}"
+    );
+    assert!(!s.contains("this._balance"), "getter body removed:\n{s}");
+    assert!(!s.contains("new Bank()"), "static body removed:\n{s}");
+}
+
+#[test]
+fn go_init_generics_embedding_variadic() {
+    let src = r#"
+package main
+
+var registry = map[string]string{}
+
+func init() {
+    registry["a"] = "alpha"
+}
+
+type Builder[T any] struct {
+    prefix string
+    items  []T
+}
+
+func (b *Builder[T]) Add(item T) *Builder[T] {
+    b.items = append(b.items, item)
+    return b
+}
+
+func Variadic(args ...int) int {
+    total := 0
+    for _, a := range args {
+        total += a
+    }
+    return total
+}
+"#;
+    let s = skeletonize(LanguageId::Go, src, "x.go", Path::new(".")).unwrap();
+    assert_balanced(&s);
+    assert!(s.contains("func init()"), "init kept:\n{s}");
+    assert!(
+        s.contains("type Builder[T any] struct"),
+        "generic struct kept:\n{s}"
+    );
+    assert!(
+        s.contains("func (b *Builder[T]) Add(item T) *Builder[T]"),
+        "generic method kept:\n{s}"
+    );
+    assert!(
+        s.contains("func Variadic(args ...int) int"),
+        "variadic kept:\n{s}"
+    );
+    assert!(!s.contains("registry[\"a\"]"), "init body removed:\n{s}");
+    assert!(
+        !s.contains("append(b.items, item)"),
+        "method body removed:\n{s}"
+    );
+    assert!(!s.contains("total += a"), "variadic body removed:\n{s}");
+}
+
+#[test]
+fn rust_generic_lifetime_impl_trait_kept() {
+    let src = r#"
+use std::fmt::Display;
+
+pub fn max_by_key<'a, T: Ord, F: Fn(&'a T) -> T>(
+    items: &'a [T],
+    key: F,
+) -> Option<&'a T> {
+    items.iter().max_by_key(key)
+}
+
+pub struct Container<T> {
+    inner: Vec<T>,
+}
+
+impl<T: Display + Clone> Container<T> {
+    pub fn to_strings(&self) -> Vec<String> {
+        self.inner.iter().map(|x| x.to_string()).collect()
+    }
+}
+"#;
+    let s = skeletonize(LanguageId::Rust, src, "x.rs", Path::new(".")).unwrap();
+    assert_balanced(&s);
+    assert!(
+        s.contains("pub fn max_by_key<'a, T: Ord, F: Fn(&'a T) -> T>("),
+        "generic fn kept:\n{s}"
+    );
+    assert!(s.contains("items: &'a [T],"), "fn arg kept:\n{s}");
+    assert!(
+        s.contains("pub struct Container<T>"),
+        "generic struct kept:\n{s}"
+    );
+    assert!(
+        s.contains("impl<T: Display + Clone> Container<T>"),
+        "generic impl kept:\n{s}"
+    );
+    assert!(!s.contains("max_by_key(key)"), "fn body removed:\n{s}");
+    assert!(!s.contains("x.to_string()"), "method body removed:\n{s}");
+}

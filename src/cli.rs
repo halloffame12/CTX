@@ -124,9 +124,9 @@ enum Command {
 
     /// Semantic diff of symbols between two git refs
     Diff {
-        /// Base ref (default: git merge-base with HEAD)
+        /// Base ref (default: HEAD; a single base is resolved to its merge-base with HEAD)
         base: Option<String>,
-        /// Head ref (default: HEAD)
+        /// Head ref (default: working tree when omitted)
         head: Option<String>,
     },
 
@@ -248,11 +248,7 @@ pub fn run() -> CtxResult<()> {
             commands::watch::cmd_watch(&project, &t)?;
         }
         Command::Mcp => {
-            let project = Project::open(&cwd, cli.root.as_deref()).or_else(|_| {
-                // MCP can run without an initialized project; use cwd as root fallback
-                let root = cli.root.clone().unwrap_or(cwd);
-                Project::open(&root, Some(&root))
-            })?;
+            let project = open(&cwd, cli.root.as_deref(), true)?;
             commands::mcp::cmd_mcp(&project, cli.root.as_deref())?;
         }
         Command::Doctor => {

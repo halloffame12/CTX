@@ -232,20 +232,38 @@ pub fn resolve_target(
             return Ok(Some((f.path, f.id, None)));
         }
     }
-    // symbol (bare name)
+    // symbol (bare name). Prefer a production definition over a test double
+    // when several files define the same symbol; tests are only used when no
+    // production definition exists.
+    let mut symbol_fallback: Option<(String, i64, Option<String>)> = None;
     for row in db.symbols_by_name(target, 10)? {
         if row.name == target
             && let Some(file) = db.file_by_id(row.file_id)?
         {
-            return Ok(Some((file.path, file.id, Some(row.name))));
+            let hit = (file.path.clone(), file.id, Some(row.name));
+            if !is_test_file(&file.path) {
+                return Ok(Some(hit));
+            }
+            symbol_fallback.get_or_insert(hit);
         }
+    }
+    if let Some(hit) = symbol_fallback {
+        return Ok(Some(hit));
     }
     // qualified symbol (Parent.member)
     if let Some((parent, member)) = target.split_once('.') {
+        let mut qualified_fallback: Option<(String, i64, Option<String>)> = None;
         for row in db.symbols_by_parent_and_name(parent, member, 10)? {
             if let Some(file) = db.file_by_id(row.file_id)? {
-                return Ok(Some((file.path, file.id, Some(row.name))));
+                let hit = (file.path.clone(), file.id, Some(row.name));
+                if !is_test_file(&file.path) {
+                    return Ok(Some(hit));
+                }
+                qualified_fallback.get_or_insert(hit);
             }
+        }
+        if let Some(hit) = qualified_fallback {
+            return Ok(Some(hit));
         }
     }
     Ok(None)

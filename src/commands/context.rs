@@ -20,7 +20,7 @@ pub fn cmd_context(
         project
             .git
             .as_ref()
-            .and_then(|git| crate::git::changed::changed_files(git, None).ok())
+            .and_then(|git| crate::git::changed::changed_files(git, None, true).ok())
             .map(|files| files.into_iter().map(|c| c.path).collect())
     } else {
         None

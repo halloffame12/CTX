@@ -4,7 +4,7 @@ import { H1, P, DocsShell, H2, CommandTable, Note } from "@/components/Sections"
 export const metadata: Metadata = {
   title: "Command reference",
   description:
-    "Every ctx command and flag: init, search, symbol, deps, impact, context, changed, diff, mcp, doctor and more.",
+    "Every ctx command and flag: init, search, symbol, deps, impact, context, changed, diff, mcp, doctor, stats, version and more.",
 };
 
 const GLOBAL = [
@@ -111,6 +111,20 @@ ctx diff main`}
       <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
 {`ctx doctor
 ctx doctor --json`}
+      </pre>
+
+      <H2>ctx stats</H2>
+      <P>Show index statistics: files, symbols, dependency edges, and the size of index.db.</P>
+      <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
+{`ctx stats
+ctx stats --json`}
+      </pre>
+
+      <H2>ctx version</H2>
+      <P>Print version information.</P>
+      <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
+{`ctx version
+ctx version --json`}
       </pre>
 
       <H2>ctx skeleton</H2>

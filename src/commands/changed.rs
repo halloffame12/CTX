@@ -64,17 +64,23 @@ fn render_changed(
     if !report.symbols.is_empty() {
         println!("\nCHANGED SYMBOLS");
         for s in &report.symbols {
+            let status_label = match s.status.as_str() {
+                "Added" => t.style(Default::GREEN, "added"),
+                "Removed" => t.style(Default::RED, "removed"),
+                _ => t.style(Default::YELLOW, "modified"),
+            };
             println!(
-                "  {}  {}:{}  ({})",
+                "  {}  {}:{}  ({})  [{}]",
                 t.style(Default::BOLD, &s.name),
                 s.file,
                 s.line,
-                s.kind
+                s.kind,
+                status_label
             );
         }
     } else {
         println!("\nCHANGED SYMBOLS");
-        println!("  (none indexed for changed files — run `ctx init`)");
+        println!("  (none changed — run `ctx diff` for file-level changes)");
     }
     Ok(())
 }
