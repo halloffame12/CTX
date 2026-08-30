@@ -14,109 +14,109 @@ pub fn list_tools() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "ctx_project".into(),
-            description: "Return the project overview: root, git, and counts of indexed files, symbols and dependencies.".into(),
+            description: "Return the project overview as JSON: {root, git, files, symbols, dependencies, languages}. Use this first to orient a coding agent on a repo: absolute root path, git root, and how large the codebase is (counts of indexed files, symbols and dependency edges, plus the distinct languages present). Requires the project to have been indexed (see ctx_search for symbol lookup). Returns only counts, never file contents. Prefer ctx_stats for detailed index-health numbers (e.g. index.db size) and ctx_search to actually find symbols.".into(),
             input_schema: json!({"type":"object","properties":{},"additionalProperties":false}),
         },
         ToolDef {
             name: "ctx_search".into(),
-            description: "Search the code graph for symbols or files by name.".into(),
+            description: "Search the project's code graph for symbols or file paths by name and return JSON. Symbol results give {name, parent, kind, path, line, signature}; with files=true results give {path, language, size}. Use to find where a function/class/type is defined before reading it, or to locate files by path fragment. Use ctx_symbol for deep detail on a single exact symbol, and ctx_impact to see what depends on a match. query is a case-insensitive substring/name match. Constrain with kind (function, method, class, struct, trait, enum, interface, type, constant, variable, module, field, constructor, impl) and limit results (default 50, 1-500).".into(),
             input_schema: json!({
                 "type":"object",
                 "properties":{
-                    "query":{"type":"string"},
-                    "kind":{"type":"string","enum":["function","method","class","interface","type","enum","constant","variable","struct","trait","module","field","constructor","impl"]},
-                    "files":{"type":"boolean","description":"search file paths instead of symbols"},
-                    "limit":{"type":"integer","minimum":1,"maximum":500}
+                    "query":{"type":"string","description":"Case-insensitive substring to match against symbol names or (when files=true) file paths. Required. Empty or very short queries return many results."},
+                    "kind":{"type":"string","enum":["function","method","class","interface","type","enum","constant","variable","struct","trait","module","field","constructor","impl"],"description":"Optional: narrow results to this symbol kind. Omit to match any kind."},
+                    "files":{"type":"boolean","description":"When true, search file paths instead of symbols and return {path, language, size}. Default false."},
+                    "limit":{"type":"integer","minimum":1,"maximum":500,"description":"Maximum number of results. Default 50."}
                 },
                 "required":["query"]
             }),
         },
         ToolDef {
             name: "ctx_skeleton".into(),
-            description: "Return a body-less structural skeleton of a source file, preserving signatures, types and exports.".into(),
+            description: "Return a body-less structural skeleton of one source file as {path, language, skeleton}. The skeleton preserves signatures, types, exports and doc comments but strips function bodies, so it is a compact map of a file's public API and structure. Use before editing a file to understand its shape without reading the whole body. path is project-relative or absolute (must be inside the project; traversal is rejected). Set with_stats=true to also include {stats} (symbol counts). Only paths for supported languages can be resolved (error otherwise); use ctx_search (files=true) to confirm a path first.".into(),
             input_schema: json!({
                 "type":"object",
                 "properties":{
-                    "path":{"type":"string","description":"project-relative or absolute file path"},
-                    "with_stats":{"type":"boolean"}
+                    "path":{"type":"string","description":"Project-relative or absolute file path. Paths outside the project root are rejected. Required."},
+                    "with_stats":{"type":"boolean","description":"When true, include a {stats} field with symbol counts. Default false."}
                 },
                 "required":["path"]
             }),
         },
         ToolDef {
             name: "ctx_symbol".into(),
-            description: "Details about a symbol: definition, kind, methods, references and dependencies.".into(),
+            description: "Return deep detail for a single symbol as JSON: [{name, kind, signature, file, line, methods, references, dependencies}]. Use when you already know the exact symbol name and need its definition, signature, methods it exposes, everywhere it is referenced, and its dependencies. For fuzzy or name-based discovery use ctx_search first, then ctx_symbol for the best match. Returns an array because a name may resolve in multiple files.".into(),
             input_schema: json!({
                 "type":"object",
-                "properties":{"name":{"type":"string"}},
+                "properties":{"name":{"type":"string","description":"Exact symbol name to look up (e.g. a function, struct, trait or type name). Required."}},
                 "required":["name"]
             }),
         },
         ToolDef {
             name: "ctx_dependencies".into(),
-            description: "List the files and modules a given file imports.".into(),
+            description: "Return the outbound import edges of a file as JSON: [{target, imported_symbol}] — the project files/modules it imports and, where known, the symbol imported. Use to see what a file depends on before refactoring it. path is project-relative or absolute (traversal rejected). For the reverse direction (who imports this) use ctx_dependents. Requires the project to be indexed.".into(),
             input_schema: json!({
                 "type":"object",
-                "properties":{"path":{"type":"string"}},
+                "properties":{"path":{"type":"string","description":"Project-relative or absolute file path. Paths outside the project root are rejected. Required."}},
                 "required":["path"]
             }),
         },
         ToolDef {
             name: "ctx_dependents".into(),
-            description: "List files that import a given file (reverse dependencies).".into(),
+            description: "Return the inbound (reverse) dependency edges of a file as JSON: [{source, imported_symbol}] — the project files that import it and, where known, the symbol they import. Use to find every consumer of a file before changing or removing it. path is project-relative or absolute (traversal rejected). For the forward direction (what a file imports) use ctx_dependencies.".into(),
             input_schema: json!({
                 "type":"object",
-                "properties":{"path":{"type":"string"}},
+                "properties":{"path":{"type":"string","description":"Project-relative or absolute file path. Paths outside the project root are rejected. Required."}},
                 "required":["path"]
             }),
         },
         ToolDef {
             name: "ctx_impact".into(),
-            description: "Analyze files and symbols potentially affected by changing a symbol or file.".into(),
+            description: "Analyze the blast radius of changing a symbol or file. Returns an ImpactReport: {target, target_symbol, depth, direct, indirect, tests, unknown} where direct/indirect/test lists are [{path, distance, symbols}]; unknown surfaces imports that could not be statically mapped. Use before modifying code to estimate what else must be checked or updated. Provide exactly one of symbol (a name) or path (a project-relative file); depth controls how many hops of indirect impact to traverse (default 3, 1-20). Requires the project to be indexed; returns an error object if the target is not found.".into(),
             input_schema: json!({
                 "type":"object",
                 "properties":{
-                    "symbol":{"type":"string","description":"symbol name"},
-                    "path":{"type":"string","description":"project-relative file path (alternative to symbol)"},
-                    "depth":{"type":"integer","minimum":1,"maximum":20}
+                    "symbol":{"type":"string","description":"Symbol name to analyze. Provide this OR path, not both."},
+                    "path":{"type":"string","description":"Project-relative file path to analyze, as an alternative to symbol."},
+                    "depth":{"type":"integer","minimum":1,"maximum":20,"description":"How many hops of indirect impact to traverse. Default 3."}
                 }
             }),
         },
         ToolDef {
             name: "ctx_context".into(),
-            description: "Build a compact, relevance-ranked context package for a coding task.".into(),
+            description: "Build a compact, relevance-ranked context package for a coding task and return it as JSON. This is the high-value tool: give it a natural-language task and it returns the most relevant files/symbols/snippets to feed to an LLM, optionally including recent git changes. Use when you need a focused slice of the codebase for a prompt instead of reading many files. task is required and should describe the goal; include_bodies (default false) embeds function bodies; max_tokens (default auto, 128-100000) caps package size.".into(),
             input_schema: json!({
                 "type":"object",
                 "properties":{
-                    "task":{"type":"string"},
-                    "include_bodies":{"type":"boolean"},
-                    "max_tokens":{"type":"integer","minimum":128,"maximum":100000}
+                    "task":{"type":"string","description":"Natural-language description of the coding task the context should support. Required."},
+                    "include_bodies":{"type":"boolean","description":"When true, include function/body text in the package (larger output). Default false."},
+                    "max_tokens":{"type":"integer","minimum":128,"maximum":100000,"description":"Upper bound on package size in tokens. Omit for automatic sizing."}
                 },
                 "required":["task"]
             }),
         },
         ToolDef {
             name: "ctx_changed".into(),
-            description: "List files and symbols changed since a git reference (default: working tree).".into(),
+            description: "Return files and symbols changed since a git reference as JSON, including working-tree changes by default. Use to focus an agent on what changed in a branch or commit range before reviewing or testing. ref is a git ref (e.g. HEAD~5, main, a SHA); omit it to report uncommitted working-tree changes. Only works in git repositories (returns an error otherwise). For a per-symbol semantic diff between two refs use ctx_diff; for a plain list of changed file paths use this tool.".into(),
             input_schema: json!({
                 "type":"object",
-                "properties":{"ref":{"type":"string","description":"git ref, e.g. HEAD, main, HEAD~5"}}
+                "properties":{"ref":{"type":"string","description":"Git ref to diff against, e.g. HEAD, main, HEAD~5, or a commit SHA. Omit to report working-tree (uncommitted) changes."}}
             }),
         },
         ToolDef {
             name: "ctx_diff".into(),
-            description: "Semantic diff: symbols added, modified or removed between two refs. Base defaults to HEAD; a single base resolves to its merge-base with HEAD, so the diff shows only the current branch's changes.".into(),
+            description: "Return a semantic symbol diff between two git refs as JSON: the symbols added, modified or removed per file. Compared to ctx_changed, this is a structural (symbol-aware) diff rather than a file list. Provide base and head explicitly, or supply only base (or neither) — when base alone is given it resolves to its merge-base with HEAD so the diff shows only the current branch's changes; head defaults to HEAD. Only works in git repositories.".into(),
             input_schema: json!({
                 "type":"object",
                 "properties":{
-                    "base":{"type":"string"},
-                    "head":{"type":"string"}
+                    "base":{"type":"string","description":"Base git ref. Optional: if only base (or neither) is given, base resolves to its merge-base with HEAD, showing only the current branch's additions/modifications/removals. Defaults to HEAD."},
+                    "head":{"type":"string","description":"Head git ref to compare against base. Defaults to HEAD."}
                 }
             }),
         },
         ToolDef {
             name: "ctx_stats".into(),
-            description: "Index statistics: counts of files, symbols and dependencies, and the size of index.db.".into(),
+            description: "Return index-health statistics as JSON: counts of indexed files, symbols and dependency edges, plus the size of index.db (the underlying code-graph database). Use to check whether the project has been indexed (all-zero counts mean you must run init/indexing before graph tools such as ctx_search or ctx_impact will return results). Read-only, no side effects. For a broader project overview (root/git/languages) use ctx_project.".into(),
             input_schema: json!({"type":"object","properties":{},"additionalProperties":false}),
         },
     ]
