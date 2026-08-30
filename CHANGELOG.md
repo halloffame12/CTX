@@ -2,6 +2,17 @@
 
 All notable changes to `ctx` are documented here.
 
+## 0.1.3
+
+### Changed
+- Rewrote the description and input schemas of every MCP tool for clarity and
+  LLM actionability (state outputs, when-to-use vs sibling tools, and
+  parameter defaults/constraints). Improves the Glama Tool Definition Quality
+  Score and tool-selection behaviour of coding agents.
+- Added a `Dockerfile` so the `ctx` MCP server builds and introspects
+  reproducibly in containerized evaluators (mirrors the `npx ctxai-cli mcp`
+  launch command).
+
 ## 0.1.2
 
 ### Fixed

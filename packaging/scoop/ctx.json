@@ -1,6 +1,6 @@
 {
   "##": "ctx — Scoop manifest",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Codebase intelligence and context engine for AI coding agents",
   "homepage": "https://github.com/halloffame12/CTX",
   "license": "MIT",

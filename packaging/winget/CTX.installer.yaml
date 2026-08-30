@@ -6,7 +6,7 @@
 #   ctx-windows-x86_64.exe   -> x64 installer
 #   ctx-windows-aarch64.exe  -> arm64 installer
 PackageIdentifier: halloffame12.CTX
-PackageVersion: 0.1.2
+PackageVersion: 0.1.3
 InstallerLocale: en-US
 Platform:
   - Windows.Desktop

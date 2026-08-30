@@ -13,7 +13,7 @@
 class Ctx < Formula
   desc "Codebase intelligence and context engine for AI coding agents"
   homepage "https://github.com/halloffame12/CTX"
-  version "0.1.2"
+  version "0.1.3"
 
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-aarch64"
