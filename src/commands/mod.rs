@@ -40,7 +40,9 @@ impl Project {
         // (e.g. a mistyped `-R`). Callers that are allowed to initialize a
         // directory (MCP fallback, `ctx init`) must pass an existing path.
         if !root.is_dir() {
-            return Err(CtxError::NotInitialized(root.display().to_string()));
+            return Err(CtxError::NotInitialized(
+                root.join(".ctx").display().to_string(),
+            ));
         }
         let config = Config::load(&root)?;
         let db = Database::open(&root)?;
@@ -57,7 +59,9 @@ impl Project {
         if Database::exists(&self.root) {
             Ok(())
         } else {
-            Err(CtxError::NotInitialized(self.root.display().to_string()))
+            Err(CtxError::NotInitialized(
+                self.root.join(".ctx").display().to_string(),
+            ))
         }
     }
 }
@@ -72,7 +76,9 @@ pub fn discover_root(cwd: &Path) -> CtxResult<PathBuf> {
         }
         dir = d.parent();
     }
-    Err(CtxError::NotInitialized(cwd.display().to_string()))
+    Err(CtxError::NotInitialized(
+        cwd.join(".ctx").display().to_string(),
+    ))
 }
 
 /// Normalise a user-supplied path to a project-relative path. Accepts

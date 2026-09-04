@@ -16,17 +16,17 @@ class Ctx < Formula
   version "0.1.3"
 
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-aarch64"
-    sha256 "24f81af4dcdd63b31ed58fefa5a79e08a560aed437a3a5353a9de1193e3266ed"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-macos-aarch64"
+    sha256 "4455cd2223f020fd8693e95dce62ad9ce4fe0aa749c07ba48d0beee1a39443a3"
   elsif OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-macos-x86_64"
-    sha256 "fa82877423814c3e275b26f5cb06127efd63fe527d278b5762a233ffda5b7565"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-macos-x86_64"
+    sha256 "f99b99eba3f80095fb3a3f0b7b47d71b034a9cb64bb810e9818a68cce722729f"
   elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-aarch64"
-    sha256 "3b64775a1d678175adb263bc876948a5bd3333002e263602efb2d0b13998f8de"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-linux-aarch64"
+    sha256 "5020a54b39313a7c9dbe5a088ee755ee343665fd5c487e5e11f1f959fb81cc96"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-x86_64"
-    sha256 "d38b88d385be8d8fe91fee172b3b68e94699f6bb1e1f4723fcbd1c55bb759d99"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-linux-x86_64"
+    sha256 "f8e6ea4101ac5cc7586c7c10c89cfedd4e89bc7c0e641d68b8aeaaf9912094c0"
   else
     odie "ctx: unsupported platform — only macOS (Intel/ARM) and Linux (Intel/ARM) are supported"
   end

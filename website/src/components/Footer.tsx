@@ -37,7 +37,7 @@ export default function Footer() {
             <p className="font-mono text-xs uppercase tracking-widest text-ink-faint">Status</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li><span className="text-ink-soft">MIT licensed</span></li>
-              <li><span className="text-ink-soft">v0.1.2</span></li>
+              <li><span className="text-ink-soft">v0.1.4</span></li>
               <li><span className="text-ink-soft">no telemetry</span></li>
             </ul>
           </div>

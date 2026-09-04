@@ -72,10 +72,11 @@ export default function DocsPage() {
 {`npm install -g ctxai-cli
 ctx --version`}
       </pre>
-      <P>Or from source with cargo:</P>
+      <P>Or build from source (requires Rust 1.85+):</P>
       <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
-{`cargo install ctxai-cli --locked
-ctx --version`}
+{`git clone https://github.com/halloffame12/CTX.git
+cd CTX && cargo build --release
+./target/release/ctx --version`}
       </pre>
       <P>Then point it at a repository:</P>
       <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">

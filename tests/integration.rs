@@ -414,6 +414,31 @@ fn context_puts_direct_hits_first_and_caps_follow_only_files() {
 }
 
 #[test]
+fn context_finds_common_verb_symbols_like_add() {
+    // Regression test: "add"/"adding" were English stop words, so a task
+    // like "find the add function" lost its only meaningful keyword and the
+    // package came back empty. Code verbs must survive tokenization, and
+    // inflections ("addition") must expand via synonyms.
+    let root = temp_root("ctx_add_verb");
+    write(
+        &root,
+        "src/lib.rs",
+        "pub fn add(a: i32, b: i32) -> i32 { a + b }\n",
+    );
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+    for task in ["find the add function", "where is addition implemented"] {
+        let pkg = ctx::context::builder::build_context(&db, &root, task, &config, false).unwrap();
+        let paths: Vec<&str> = pkg.files.iter().map(|f| f.path.as_str()).collect();
+        assert!(
+            paths.contains(&"src/lib.rs"),
+            "task {task:?} must find src/lib.rs: {paths:?}"
+        );
+    }
+}
+
+#[test]
 fn changed_symbols_reports_only_actual_diffs() {
     let root = temp_root("changed_syms");
     write(
@@ -1530,7 +1555,8 @@ fn stats_reports_index_counts_and_db_size() {
     {
         use std::io::Write;
         let mut w = out.by_ref();
-        ctx::commands::stats::write_stats(&mut w, &project, false).unwrap();
+        let t = ctx::output::Term::new(false, true, false);
+        ctx::commands::stats::write_stats(&mut w, &project, &t).unwrap();
         let _ = w;
     }
     let text = String::from_utf8(out).unwrap();
@@ -1548,7 +1574,8 @@ fn stats_reports_index_counts_and_db_size() {
     );
 
     let mut out = Vec::new();
-    ctx::commands::stats::write_stats(&mut out, &project, true).unwrap();
+    let tj = ctx::output::Term::new(true, true, false);
+    ctx::commands::stats::write_stats(&mut out, &project, &tj).unwrap();
     let json: serde_json::Value = serde_json::from_slice(&out).unwrap();
     assert_eq!(json["files"], serde_json::json!(files));
     assert_eq!(json["symbols"], serde_json::json!(symbols));

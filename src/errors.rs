@@ -4,7 +4,7 @@ use thiserror::Error;
 pub enum CtxError {
     #[error("{0}")]
     Usage(String),
-    #[error("no `ctx` index found at {0}/.ctx — run `ctx init` first")]
+    #[error("no `ctx` index found at {0} — run `ctx init` first")]
     NotInitialized(String),
     #[error(
         "path `{0}` is outside the project root — pass a project-relative path or set the root with -R"

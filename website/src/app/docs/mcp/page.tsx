@@ -169,7 +169,7 @@ ctx mcp -R /path/to/project`}
           not appear.
         </li>
         <li>
-          Only TypeScript/JavaScript, Python, Rust, and Go are parsed. Other
+          Only TypeScript, JavaScript, Python, Rust, and Go are parsed. Other
           files are invisible to the tools.
         </li>
       </Ul>

@@ -315,7 +315,7 @@ fn resolve_root(
     };
     if require_init && !crate::graph::database::Database::exists(&root) {
         return Err(crate::errors::CtxError::NotInitialized(
-            root.display().to_string(),
+            root.join(".ctx").display().to_string(),
         ));
     }
     Ok(root)
@@ -332,7 +332,7 @@ fn open(
     };
     if !root.is_dir() || !crate::graph::database::Database::exists(&root) {
         return Err(crate::errors::CtxError::NotInitialized(
-            root.display().to_string(),
+            root.join(".ctx").display().to_string(),
         ));
     }
     let project = Project::open(&root, Some(&root))?;

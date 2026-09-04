@@ -34,7 +34,7 @@ export default function Navbar() {
           </span>
           <span>ctx</span>
           <span className="hidden rounded border border-line bg-paper px-1.5 py-0.5 font-mono text-[10px] font-normal text-ink-faint min-[420px]:inline-block">
-            v0.1.2
+            v0.1.4
           </span>
         </Link>
 

@@ -99,7 +99,7 @@ ctx init --force    # rebuild index + config even if they exist`}
         summary="Search the graph for symbols or files."
         flags={[
           { flag: "<QUERY>", desc: "Case-insensitive name query" },
-          { flag: "--kind <KIND>", desc: "Restrict to a symbol kind (fn, const, alias, struct, trait, interface, type, enum, class, method, module, field, constructor, impl…)" },
+          { flag: "--kind <KIND>", desc: "Restrict to a symbol kind (function, method, class, interface, type, enum, constant, variable, struct, trait, module, field, constructor, impl — plus aliases fn, const, alias)" },
           { flag: "--files", desc: "Search file paths instead of symbols" },
           { flag: "--limit <LIMIT>", desc: "Maximum number of results [default: 50]" },
         ]}

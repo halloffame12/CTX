@@ -4,7 +4,7 @@ import { H1, P, DocsShell, H2, Code, Note, Ul } from "@/components/Sections";
 export const metadata: Metadata = {
   title: "Installation",
   description:
-    "Install ctx via npm, cargo, or prebuilt binaries. Requires Rust 1.85+ only when building from source.",
+    "Install ctx via npm or prebuilt binaries, or build from source. Requires Rust 1.85+ only when building from source.",
 };
 
 export default function InstallPage() {
@@ -26,7 +26,7 @@ export default function InstallPage() {
         </li>
         <li>
           <strong>Building from source:</strong> Rust 1.85 or newer plus a C
-          toolchain (only needed for the <Code>cargo install</Code> route).
+          toolchain (only needed when building from the repository).
         </li>
         <li>
           <strong>git:</strong> only <Code>ctx changed</Code> and{" "}
@@ -47,13 +47,15 @@ ctx --version`}
         <Code>npx -y ctxai-cli mcp</Code>.
       </P>
 
-      <H2 id="cargo">Via cargo</H2>
+      <H2 id="cargo">Build from source</H2>
       <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
-{`cargo install ctxai-cli --locked`}
+{`git clone https://github.com/halloffame12/CTX.git
+cd CTX && cargo build --release
+./target/release/ctx --version`}
       </pre>
       <P>
-        Requires Rust 1.85 or newer. <Code>--locked</Code> pins the dependency
-        graph to the versions ctx was tested against.
+        Requires Rust 1.85 or newer plus a C toolchain. (There is no crates.io
+        release — build from the repository to get the current version.)
       </P>
 
       <H2 id="binaries">Prebuilt binaries</H2>
@@ -71,7 +73,7 @@ ctx --version`}
         the download:
       </P>
       <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
-{`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-x86_64
+{`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-x86_64
 shasum -a 256 ctx-linux-x86_64   # compare against checksums.txt
 chmod +x ctx-linux-x86_64
 sudo mv ctx-linux-x86_64 /usr/local/bin/ctx`}
@@ -85,9 +87,9 @@ sudo mv ctx-linux-x86_64 /usr/local/bin/ctx`}
 
       <H2 id="upgrade">Upgrading</H2>
       <P>
-        npm users: <Code>npm install -g ctxai-cli@latest</Code>. Cargo users:{" "}
-        <Code>cargo install ctxai-cli --locked --force</Code>. Check your
-        version with <Code>ctx version</Code>.
+        npm users: <Code>npm install -g ctxai-cli@latest</Code>. From source:{" "}
+        <Code>git pull && cargo build --release</Code>. Check your version
+        with <Code>ctx version</Code>.
       </P>
 
       <H2 id="smoke">Quick smoke test</H2>

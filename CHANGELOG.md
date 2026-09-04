@@ -2,6 +2,30 @@
 
 All notable changes to `ctx` are documented here.
 
+## 0.1.4
+
+### Fixed
+- `ctx context` no longer drops code verbs (`add`, `create`, `make`, `use`,
+  `implement`, …) as English stop words, and inflections like `addition`
+  expand to `add` via a new synonym group. A task such as "find the add
+  function" now finds the symbol instead of returning an empty package.
+- `ctx stats` honors the caller's `--no-color` / `-q` / `-j` flags instead of
+  silently discarding them.
+- "Not initialized" errors now print the `.ctx` path with native separators
+  on Windows (`C:\proj\.ctx` instead of `C:\proj/.ctx`).
+
+### Changed
+- Windows release binaries link the C runtime statically, so the `.exe`
+  runs on machines without the VC++ Redistributable ("no runtime
+  dependencies" holds on all platforms).
+- Release pipeline smoke test now indexes a fixture and proves `search`
+  finds a symbol, so a functionally broken binary cannot ship.
+
+### Docs
+- Website numbers refreshed to measured values (206 files, 1,721 symbols,
+  594 edges, ~1 s index, 110 tests, 5 languages); install docs no longer
+  promise crates.io or Winget, which are not published.
+
 ## 0.1.3
 
 ### Changed

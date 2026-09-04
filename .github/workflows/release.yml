@@ -85,6 +85,11 @@ jobs:
 
       - name: Build (${{ matrix.target }})
         shell: bash
+        # Windows MSVC links the VC++ runtime dynamically by default, which
+        # makes the binary fail to launch on machines without the redist.
+        # Static CRT keeps the "no runtime dependencies" promise true.
+        env:
+          RUSTFLAGS: ${{ runner.os == 'Windows' && '-C target-feature=+crt-static' || '' }}
         run: |
           if [ "${{ matrix.cross }}" = "true" ]; then
             cross build --release --target ${{ matrix.target }}
@@ -100,6 +105,14 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then bin="$bin.exe"; fi
           "$bin" --version
           "$bin" --help > /dev/null
+          # Functional gate: --version/--help pass even on a broken build.
+          # Index a tiny fixture and prove search finds the symbol, so a
+          # binary that cannot run queries never ships.
+          rm -rf /tmp/ctx-smoke && mkdir -p /tmp/ctx-smoke/src
+          printf 'pub fn smoke_add(a: i32, b: i32) -> i32 { a + b }\n' > /tmp/ctx-smoke/src/lib.rs
+          "$bin" init /tmp/ctx-smoke --force > /dev/null
+          "$bin" search smoke_add -R /tmp/ctx-smoke | grep -q smoke_add
+          "$bin" doctor -R /tmp/ctx-smoke > /dev/null
 
       - name: Stage artifact
         shell: bash
@@ -162,9 +175,6 @@ jobs:
 
             # npm
             npm install -g ctxai-cli
-
-            # Rust
-            cargo install ctxai-cli
 
             # Direct download (below)
             # macOS / Linux

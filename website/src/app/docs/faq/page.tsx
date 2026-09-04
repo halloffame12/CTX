@@ -23,7 +23,7 @@ export default function FaqPage() {
 
       <H2 id="languages">Which languages are supported?</H2>
       <P>
-        TypeScript/JavaScript, Python, Rust, and Go. Each is parsed with a
+        TypeScript, JavaScript, Python, Rust, and Go. Each is parsed with a
         tree-sitter grammar, and dependency resolution is language-aware. Any
         other file type is skipped by the scanner.
       </P>
@@ -77,10 +77,11 @@ export default function FaqPage() {
       <H2 id="cost">What does the index cost at runtime?</H2>
       <P>
         The binary is a single static-ish Rust executable with no runtime
-        dependencies. As a concrete example, indexing this project&apos;s own
-        repository (≈ 75 source files, ≈ 870 symbols) takes about 90 ms; a
-        re-index of an unchanged tree is typically in the tens of milliseconds.
-        Your mileage depends on repository size and hardware.
+        dependencies (Windows builds link the C runtime statically). As a
+        concrete example, indexing this project&apos;s own repository (≈ 200
+        source files, ≈ 1,700 symbols) takes about a second; a re-index of
+        an unchanged tree is typically in the tens of milliseconds. Your
+        mileage depends on repository size and hardware.
       </P>
 
       <H2 id="ci">Can I use ctx in CI?</H2>
@@ -95,8 +96,8 @@ export default function FaqPage() {
       <H2 id="limitations">Honest limitations</H2>
       <Ul>
         <li>
-          <strong>Four languages.</strong> TS/JS, Python, Rust, Go. Everything
-          else is invisible.
+          <strong>Five languages.</strong> TypeScript, JavaScript, Python, Rust,
+          Go. Everything else is invisible.
         </li>
         <li>
           <strong>Name-based, not semantic.</strong> Search and context ranking

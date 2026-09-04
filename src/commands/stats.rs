@@ -22,21 +22,22 @@ pub struct StatsReport {
 
 pub fn cmd_stats(project: &Project, t: &Term) -> CtxResult<()> {
     let mut out = std::io::stdout();
-    write_stats(&mut out, project, t.is_json())?;
+    write_stats(&mut out, project, t)?;
     Ok(())
 }
 
 /// Render the stats report. Used by the CLI and integration tests.
-pub fn write_stats(out: &mut dyn Write, project: &Project, json: bool) -> CtxResult<()> {
+/// Honors the caller's `Term` so `--no-color`/`-q`/JSON flags are respected
+/// instead of being silently dropped.
+pub fn write_stats(out: &mut dyn Write, project: &Project, t: &Term) -> CtxResult<()> {
     let report = stats(&project.root, &project.db)?;
 
-    if json {
+    if t.is_json() {
         let v = serde_json::to_value(&report)?;
         writeln!(out, "{}", serde_json::to_string_pretty(&v)?)?;
         return Ok(());
     }
 
-    let t = Term::new(false, false, false);
     writeln!(
         out,
         "{}",

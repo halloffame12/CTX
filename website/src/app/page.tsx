@@ -31,20 +31,20 @@ const jsonLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   license: "https://github.com/halloffame12/CTX/blob/main/LICENSE",
   author: { "@type": "Person", name: "Sumit Chauhan", url: "https://github.com/halloffame12" },
-  softwareVersion: "0.1.2",
+  softwareVersion: "0.1.4",
   codeRepository: "https://github.com/halloffame12/CTX",
 };
 
 const HERO_STATS = [
-  { label: "files indexed", value: "75" },
-  { label: "symbols", value: "873" },
-  { label: "dependency edges", value: "452" },
-  { label: "index time", value: "~90 ms" },
+  { label: "files indexed", value: "206" },
+  { label: "symbols", value: "1,721" },
+  { label: "dependency edges", value: "594" },
+  { label: "index time", value: "~1 s" },
 ];
 
 const FACTS = [
-  { value: "109", label: "tests passing" },
-  { value: "4", label: "languages parsed" },
+  { value: "110", label: "tests passing" },
+  { value: "5", label: "languages parsed" },
   { value: "11", label: "MCP tools" },
   { value: "0", label: "telemetry · embeddings" },
 ];
@@ -162,7 +162,7 @@ export default function Home() {
             <div>
               <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 font-mono text-xs text-ink-soft">
                 <span className="size-1.5 rounded-full bg-accent" />
-                v0.1.2 · open source · MIT · no telemetry
+                v0.1.4 · open source · MIT · no telemetry
               </p>
               <h1 className="mt-6 text-[clamp(2.25rem,4.5vw+0.5rem,4.25rem)] font-bold leading-[1.06] tracking-tight text-ink">
                 AI agents hallucinate code.{" "}
@@ -331,10 +331,18 @@ Context budget: 1,842 / 12,000 tokens`}
               <CodeBlock
                 title="ctx impact"
                 code={`$ ctx impact UserService.updateUser --depth 5
-Direct dependents    2 files, 4 symbols
-Indirect dependents  1 file,  2 symbols
-Tests                1 file
-UNKNOWN              1 unresolved import`}
+IMPACT ANALYSIS
+Changed:
+  UserService.updateUser
+Direct dependents:
+  src/billing/invoice.ts
+  src/api/router.ts
+Tests:
+  tests/billing.test.ts
+Potentially affected:
+  4 files
+  6 symbols
+  (depth 5)`}
               />
               <CodeBlock
                 title="ctx diff"
@@ -403,7 +411,7 @@ class User(BaseModel)
                 <SectionHead
                   eyebrow="Install"
                   title="One binary, every package manager"
-                  sub="The npm build ships without a Rust toolchain. Homebrew, Scoop, and Winget manifests are maintained in the repository."
+                  sub="The npm build ships without a Rust toolchain. Homebrew and Scoop manifests are maintained in the repository."
                 />
                 <div className="mt-8">
                   <video
@@ -426,13 +434,14 @@ class User(BaseModel)
 ctx --version`}
                 />
                 <CodeBlock
-                  title="cargo — from source"
-                  code={`cargo install ctxai-cli --locked
-ctx --version`}
+                  title="cargo — build from source"
+                  code={`git clone https://github.com/halloffame12/CTX.git
+cd CTX && cargo build --release
+./target/release/ctx --version`}
                 />
                 <CodeBlock
                   title="binaries — every GitHub release"
-                  code={`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.2/ctx-linux-x86_64
+                  code={`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-x86_64
 chmod +x ctx-linux-x86_64
 sudo mv ctx-linux-x86_64 /usr/local/bin/ctx`}
                 />
