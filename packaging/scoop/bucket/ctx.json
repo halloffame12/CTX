@@ -1,13 +1,13 @@
 {
   "##": "ctx — Scoop manifest",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Codebase intelligence and context engine for AI coding agents",
   "homepage": "https://github.com/halloffame12/CTX",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-windows-x86_64.exe",
-      "hash": "dac81dadbeec4a13935b316d746e2f9f59255216426a4e05afc2934d0d36f850",
+      "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-x86_64.exe",
+      "hash": "b3b92dd6b2c82d8e2e69ed5b03ac7aff2d5cd37e0b6680faffbab856b714dbbc",
       "bin": [
         [
           "ctx-windows-x86_64.exe",
@@ -16,8 +16,8 @@
       ]
     },
     "arm64": {
-      "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-windows-aarch64.exe",
-      "hash": "2e3e129a0d3304efd18bd2d6e736d74f94780eeb7824364a51a09422c847370f",
+      "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-aarch64.exe",
+      "hash": "df4145d8fa6e7b8d1e6380609a1ef458257d82c624059c329cf258d618428542",
       "bin": [
         [
           "ctx-windows-aarch64.exe",

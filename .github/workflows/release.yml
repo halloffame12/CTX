@@ -98,7 +98,7 @@ jobs:
           fi
 
       - name: Smoke test
-        if: matrix.cross == 'false'
+        if: matrix.cross == false
         shell: bash
         run: |
           bin="target/${{ matrix.target }}/release/ctx"

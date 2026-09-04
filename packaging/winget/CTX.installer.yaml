@@ -6,7 +6,7 @@
 #   ctx-windows-x86_64.exe   -> x64 installer
 #   ctx-windows-aarch64.exe  -> arm64 installer
 PackageIdentifier: halloffame12.CTX
-PackageVersion: 0.1.3
+PackageVersion: 0.1.4
 InstallerLocale: en-US
 Platform:
   - Windows.Desktop
@@ -17,16 +17,16 @@ InstallModes:
   - silent
   - silentWithProgress
 UpgradeBehavior: install
-ReleaseDate: 2026-08-30
+ReleaseDate: 2026-09-04
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-windows-x86_64.exe
-    InstallerSha256: "dac81dadbeec4a13935b316d746e2f9f59255216426a4e05afc2934d0d36f850"
+    InstallerUrl: https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-x86_64.exe
+    InstallerSha256: "b3b92dd6b2c82d8e2e69ed5b03ac7aff2d5cd37e0b6680faffbab856b714dbbc"
     Commands:
       - ctx
   - Architecture: arm64
-    InstallerUrl: https://github.com/halloffame12/CTX/releases/download/v0.1.3/ctx-windows-aarch64.exe
-    InstallerSha256: "2e3e129a0d3304efd18bd2d6e736d74f94780eeb7824364a51a09422c847370f"
+    InstallerUrl: https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-aarch64.exe
+    InstallerSha256: "df4145d8fa6e7b8d1e6380609a1ef458257d82c624059c329cf258d618428542"
     Commands:
       - ctx
 ManifestType: installer
