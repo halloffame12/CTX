@@ -7,7 +7,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-x86_64.exe",
-      "hash": "b3b92dd6b2c82d8e2e69ed5b03ac7aff2d5cd37e0b6680faffbab856b714dbbc",
+      "hash": "2ab7a0ff0e3ff0ce4f64126708a42387a41c1860800557539877534686920ba5",
       "bin": [
         [
           "ctx-windows-x86_64.exe",

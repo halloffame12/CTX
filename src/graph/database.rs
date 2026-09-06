@@ -217,14 +217,36 @@ impl Database {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
-
     pub fn files_like(&self, needle: &str, limit: usize) -> CtxResult<Vec<FileRecord>> {
         let pattern = format!("%{}%", escape_like(needle));
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, hash, mtime, language, size FROM files WHERE path LIKE ?1 ESCAPE '\\' ORDER BY path LIMIT ?2",
+            "SELECT id, path, hash, mtime, language, size FROM files WHERE path LIKE ?1 ESCAPE '\\' ORDER BY path 
+LIMIT ?2",
         )?;
         let rows = stmt
             .query_map(params![pattern, limit as i64], row_file)?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
+    /// Returns files matching the query that contain symbols of the specified kind.
+    pub fn files_like_with_kind(
+        &self,
+        needle: &str,
+        kind: &str,
+        limit: usize,
+    ) -> CtxResult<Vec<FileRecord>> {
+        let pattern = format!("%{}%", escape_like(needle));
+        let kind = kind.to_string();
+        let mut stmt = self.conn.prepare(
+            "SELECT DISTINCT f.id, f.path, f.hash, f.mtime, f.language, f.size
+             FROM files f
+             JOIN symbols s ON s.file_id = f.id
+             WHERE f.path LIKE ?1 ESCAPE '\\' AND s.kind = ?2
+             ORDER BY f.path LIMIT ?3",
+        )?;
+        let rows = stmt
+            .query_map(params![pattern, kind, limit as i64], row_file)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }

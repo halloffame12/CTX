@@ -2623,3 +2623,50 @@ fn duplicate_imports_do_not_duplicate_edges() {
     let deps = db.dependencies_of(a.id).unwrap();
     assert_eq!(deps.len(), 2, "exactly two import edges: {deps:?}");
 }
+
+#[test]
+fn files_like_with_kind_filters_by_symbol_kind() {
+    let root = temp_root("files_like_kind");
+    write(
+        &root,
+        "src/enums.ts",
+        "export enum UserRole { Admin, Member, Guest }",
+    );
+    write(
+        &root,
+        "src/models.ts",
+        "export interface User { id: number }",
+    );
+    write(
+        &root,
+        "src/enums.py",
+        "from enum import Enum\nclass Status(Enum):\n    ACTIVE = 1",
+    );
+
+    let config = Config::default();
+    run_index(&root, &config).unwrap();
+    let db = ctx::graph::database::Database::open(&root).unwrap();
+
+    // Search for enum symbols with file filter
+    let enum_files = db.files_like_with_kind("enums", "enum", 10).unwrap();
+    let enum_paths: Vec<&str> = enum_files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        enum_paths.iter().any(|p| p.ends_with("enums.ts")),
+        "should find enum file: {:?}",
+        enum_paths
+    );
+    assert!(
+        !enum_paths.iter().any(|p| p.contains("models.ts")),
+        "should not include interface file: {:?}",
+        enum_paths
+    );
+
+    // Search for interface symbols with file filter
+    let interface_files = db.files_like_with_kind("models", "interface", 10).unwrap();
+    let interface_paths: Vec<&str> = interface_files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        interface_paths.iter().any(|p| p.contains("models")),
+        "should find interface file: {:?}",
+        interface_paths
+    );
+}

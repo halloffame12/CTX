@@ -17,7 +17,11 @@ pub fn cmd_search(
     let kind = normalize_kind(kind)?;
 
     if files_only {
-        let files = project.db.files_like(query, limit)?;
+        let files = if let Some(kind) = kind {
+            project.db.files_like_with_kind(query, kind, limit)?
+        } else {
+            project.db.files_like(query, limit)?
+        };
         if t.is_json() {
             let v: Vec<serde_json::Value> = files
                 .iter()

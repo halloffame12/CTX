@@ -51,25 +51,56 @@ impl RpcError {
     }
 }
 
+/// Schema version for MCP tool definitions. Increment when making breaking changes to tool schemas.
+pub const TOOL_SCHEMA_VERSION: u32 = 1;
+
+/// JSON Schema for a tool input parameter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolParamSchema {
+    #[serde(rename = "type")]
+    pub param_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enum_values: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
+}
+
 /// The MCP `tools/list` result schema.
 #[derive(Debug, Clone, Serialize)]
 pub struct ToolsListResult {
     pub tools: Vec<ToolDef>,
 }
 
+/// MCP tool definition with versioned schema.
 #[derive(Debug, Clone, Serialize)]
 pub struct ToolDef {
     pub name: String,
     pub description: String,
     #[serde(rename = "inputSchema")]
     pub input_schema: Value,
+    /// Schema version for this tool. Defaults to TOOL_SCHEMA_VERSION.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub schema_version: Option<u32>,
+    /// Optional output schema for the tool result.
+    #[serde(skip_serializing_if = "Option::is_none", rename = "outputSchema")]
+    pub output_schema: Option<Value>,
 }
 
+/// MCP tool call result with structured output schema.
 #[derive(Debug, Clone, Serialize)]
 pub struct ToolCallResult {
     pub content: Vec<ContentBlock>,
     #[serde(skip_serializing_if = "Option::is_none", rename = "isError")]
     pub is_error: Option<bool>,
+    /// Structured output schema for the tool result (optional, for schema-aware clients).
+    #[serde(skip_serializing_if = "Option::is_none", rename = "outputSchema")]
+    pub output_schema: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]

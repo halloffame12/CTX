@@ -25,6 +25,9 @@ pub struct RelevantSymbol {
     pub score: f64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reasons: Vec<String>,
+    /// Confidence in this symbol's relevance: "high", "medium", "low"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -37,6 +40,15 @@ pub struct RelevantFile {
     pub tokens: usize,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reasons: Vec<String>,
+    /// Confidence in this file's relevance: "high", "medium", "low"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<String>,
+    /// Number of unresolved imports in this file (unknown dependency boundary).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unresolved_imports: Option<usize>,
+    /// Number of internal dependencies of this file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub internal_dependencies: Option<usize>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -62,6 +74,18 @@ pub struct ContextPackage {
     pub is_estimate: bool,
     /// Whether working-tree git changes were considered in scoring.
     pub git_changes_considered: bool,
+    /// Overall confidence in the context package: "high", "medium", "low".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<String>,
+    /// Number of files with unresolved imports (unknown dependency boundary).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unresolved_file_count: Option<usize>,
+    /// Number of files that were direct keyword/symbol matches (not follow-only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direct_match_count: Option<usize>,
+    /// Number of follow-only files (dependencies/dependents without direct signal).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follow_only_count: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -195,6 +219,13 @@ pub fn build_context_with(
                 &file.path,
                 &keywords,
             );
+            let symbol_confidence = if score >= 6.0 {
+                Some("high".to_string())
+            } else if score >= 3.0 {
+                Some("medium".to_string())
+            } else {
+                Some("low".to_string())
+            };
             relevant_symbols.push(RelevantSymbol {
                 name: s.name.clone(),
                 kind: s.kind.clone(),
@@ -203,6 +234,7 @@ pub fn build_context_with(
                 signature: s.signature.clone(),
                 score,
                 reasons: reasons.clone(),
+                confidence: symbol_confidence,
             });
             let entry = file_scores.entry(s.file_id).or_insert_with(|| ScoredFile {
                 record: file.clone(),
@@ -485,6 +517,37 @@ pub fn build_context_with(
         }
     }
 
+    // Calculate confidence/uncertainty metrics
+    let direct_match_count = scored
+        .iter()
+        .filter(|s| !follow_only.contains(&s.record.id))
+        .count();
+    let follow_only_count = follow_seen;
+    let unresolved_file_count = scored
+        .iter()
+        .filter(|s| {
+            // A file has unresolved imports if it has external dependencies that couldn't be resolved
+            db.dependencies_of(s.record.id)
+                .map(|deps| deps.iter().any(|d| d.target_file_id.is_none()))
+                .unwrap_or(false)
+        })
+        .count();
+
+    // Calculate overall confidence based on direct matches, unresolved ratio, and coverage
+    let confidence = if direct_match_count == 0 || unresolved_file_count > direct_match_count / 2 {
+        Some("low".to_string())
+    } else if direct_match_count >= 3 && unresolved_file_count == 0 {
+        Some("high".to_string())
+    } else if direct_match_count >= 2 && unresolved_file_count <= 1 {
+        Some("medium_high".to_string())
+    } else if direct_match_count == 1 && unresolved_file_count == 0 {
+        Some("medium".to_string())
+    } else if direct_match_count >= 1 {
+        Some("low_medium".to_string())
+    } else {
+        Some("low".to_string())
+    };
+
     let budget_total = max_tokens.unwrap_or(config.context.max_tokens).max(1);
     let mut relevant_files: Vec<RelevantFile> = Vec::new();
     let mut relevant_deps: Vec<String> = Vec::new();
@@ -541,13 +604,36 @@ pub fn build_context_with(
         total_tokens += included_tokens;
 
         // collect distinct internal + external deps for the package
+        let mut internal_dep_count = 0usize;
+        let mut unresolved_count = 0usize;
         if let Ok(deps) = internal_and_external_deps(db, &sc.record) {
             for d in deps {
                 if !relevant_deps.contains(&d) && relevant_deps.len() < 12 {
                     relevant_deps.push(d);
                 }
+                // Count internal vs unresolved
+                for dep in db.dependencies_of(sc.record.id).unwrap_or_default() {
+                    if dep.target_file_id.is_some() {
+                        internal_dep_count += 1;
+                    } else {
+                        unresolved_count += 1;
+                    }
+                }
             }
         }
+
+        // Calculate file confidence based on score and direct match
+        let is_direct = !follow_only.contains(&sc.record.id);
+        let file_confidence = if sc.score >= 5.0 && is_direct {
+            Some("high".to_string())
+        } else if sc.score >= 2.0 && is_direct {
+            Some("medium".to_string())
+        } else if is_direct {
+            Some("low".to_string())
+        } else {
+            Some("very_low".to_string()) // follow-only files have very low confidence
+        };
+
         relevant_files.push(RelevantFile {
             path: rel.clone(),
             score: sc.score,
@@ -555,6 +641,17 @@ pub fn build_context_with(
             skeleton: included,
             tokens: included_tokens,
             reasons: sc.reasons,
+            confidence: file_confidence,
+            unresolved_imports: if unresolved_count > 0 {
+                Some(unresolved_count)
+            } else {
+                None
+            },
+            internal_dependencies: if internal_dep_count > 0 {
+                Some(internal_dep_count)
+            } else {
+                None
+            },
         });
     }
 
@@ -588,6 +685,14 @@ pub fn build_context_with(
         budget_exceeded: total_tokens > budget_total,
         is_estimate: true,
         git_changes_considered: git_considered,
+        confidence,
+        unresolved_file_count: if unresolved_file_count > 0 {
+            Some(unresolved_file_count)
+        } else {
+            None
+        },
+        direct_match_count: Some(direct_match_count),
+        follow_only_count: Some(follow_only_count),
     })
 }
 

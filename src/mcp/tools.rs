@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 
 use crate::commands::Project;
 use crate::errors::CtxResult;
-use crate::mcp::protocol::ToolDef;
+use crate::mcp::protocol::{TOOL_SCHEMA_VERSION, ToolDef};
 
 pub struct McpEnv {
     pub project: Project,
@@ -16,6 +16,19 @@ pub fn list_tools() -> Vec<ToolDef> {
             name: "ctx_project".into(),
             description: "Return the project overview as JSON: {root, git, files, symbols, dependencies, languages}. Use this first to orient a coding agent on a repo: absolute root path, git root, and how large the codebase is (counts of indexed files, symbols and dependency edges, plus the distinct languages present). Requires the project to have been indexed (see ctx_search for symbol lookup). Returns only counts, never file contents. Prefer ctx_stats for detailed index-health numbers (e.g. index.db size) and ctx_search to actually find symbols.".into(),
             input_schema: json!({"type":"object","properties":{},"additionalProperties":false}),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "object",
+                "properties": {
+                    "root": {"type": "string"},
+                    "git": {"type": ["string", "null"]},
+                    "files": {"type": "integer"},
+                    "symbols": {"type": "integer"},
+                    "dependencies": {"type": "integer"},
+                    "languages": {"type": "array", "items": {"type": "string"}}
+                },
+                "required": ["root", "files", "symbols", "dependencies", "languages"]
+            })),
         },
         ToolDef {
             name: "ctx_search".into(),
@@ -30,6 +43,22 @@ pub fn list_tools() -> Vec<ToolDef> {
                 },
                 "required":["query"]
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "parent": {"type": ["string", "null"]},
+                        "kind": {"type": "string"},
+                        "path": {"type": "string"},
+                        "line": {"type": "integer"},
+                        "signature": {"type": ["string", "null"]}
+                    },
+                    "required": ["name", "kind", "path", "line"]
+                }
+            })),
         },
         ToolDef {
             name: "ctx_skeleton".into(),
@@ -42,6 +71,17 @@ pub fn list_tools() -> Vec<ToolDef> {
                 },
                 "required":["path"]
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "language": {"type": "string"},
+                    "skeleton": {"type": "string"},
+                    "stats": {"type": ["object", "null"]}
+                },
+                "required": ["path", "language", "skeleton"]
+            })),
         },
         ToolDef {
             name: "ctx_symbol".into(),
@@ -51,6 +91,24 @@ pub fn list_tools() -> Vec<ToolDef> {
                 "properties":{"name":{"type":"string","description":"Exact symbol name to look up (e.g. a function, struct, trait or type name). Required."}},
                 "required":["name"]
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "kind": {"type": "string"},
+                        "signature": {"type": ["string", "null"]},
+                        "file": {"type": "string"},
+                        "line": {"type": "integer"},
+                        "methods": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "kind": {"type": "string"}}, "required": ["name", "kind"]}},
+                        "references": {"type": "array", "items": {"type": "object", "properties": {"path": {"type": "string"}, "line": {"type": "integer"}}, "required": ["path", "line"]}},
+                        "dependencies": {"type": "array", "items": {"type": "object", "properties": {"target": {"type": "string"}, "imported_symbol": {"type": ["string", "null"]}}, "required": ["target"]}}
+                    },
+                    "required": ["name", "kind", "signature", "file", "line"]
+                }
+            })),
         },
         ToolDef {
             name: "ctx_dependencies".into(),
@@ -60,6 +118,18 @@ pub fn list_tools() -> Vec<ToolDef> {
                 "properties":{"path":{"type":"string","description":"Project-relative or absolute file path. Paths outside the project root are rejected. Required."}},
                 "required":["path"]
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "target": {"type": "string"},
+                        "imported_symbol": {"type": ["string", "null"]}
+                    },
+                    "required": ["target"]
+                }
+            })),
         },
         ToolDef {
             name: "ctx_dependents".into(),
@@ -69,6 +139,18 @@ pub fn list_tools() -> Vec<ToolDef> {
                 "properties":{"path":{"type":"string","description":"Project-relative or absolute file path. Paths outside the project root are rejected. Required."}},
                 "required":["path"]
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "source": {"type": "string"},
+                        "imported_symbol": {"type": ["string", "null"]}
+                    },
+                    "required": ["source"]
+                }
+            })),
         },
         ToolDef {
             name: "ctx_impact".into(),
@@ -81,6 +163,8 @@ pub fn list_tools() -> Vec<ToolDef> {
                     "depth":{"type":"integer","minimum":1,"maximum":20,"description":"How many hops of indirect impact to traverse. Default 3."}
                 }
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({"type": "object"})),
         },
         ToolDef {
             name: "ctx_context".into(),
@@ -94,6 +178,8 @@ pub fn list_tools() -> Vec<ToolDef> {
                 },
                 "required":["task"]
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({"type": "object"})),
         },
         ToolDef {
             name: "ctx_changed".into(),
@@ -102,6 +188,8 @@ pub fn list_tools() -> Vec<ToolDef> {
                 "type":"object",
                 "properties":{"ref":{"type":"string","description":"Git ref to diff against, e.g. HEAD, main, HEAD~5, or a commit SHA. Omit to report working-tree (uncommitted) changes."}}
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({"type": "object"})),
         },
         ToolDef {
             name: "ctx_diff".into(),
@@ -113,11 +201,25 @@ pub fn list_tools() -> Vec<ToolDef> {
                     "head":{"type":"string","description":"Head git ref to compare against base. Defaults to HEAD."}
                 }
             }),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({"type": "object"})),
         },
         ToolDef {
             name: "ctx_stats".into(),
             description: "Return index-health statistics as JSON: counts of indexed files, symbols and dependency edges, plus the size of index.db (the underlying code-graph database). Use to check whether the project has been indexed (all-zero counts mean you must run init/indexing before graph tools such as ctx_search or ctx_impact will return results). Read-only, no side effects. For a broader project overview (root/git/languages) use ctx_project.".into(),
             input_schema: json!({"type":"object","properties":{},"additionalProperties":false}),
+            schema_version: Some(TOOL_SCHEMA_VERSION),
+            output_schema: Some(json!({
+                "type": "object",
+                "properties": {
+                    "root": {"type": "string"},
+                    "files": {"type": "integer"},
+                    "symbols": {"type": "integer"},
+                    "dependencies": {"type": "integer"},
+                    "db_size": {"type": "integer"}
+                },
+                "required": ["root", "files", "symbols", "dependencies", "db_size"]
+            })),
         },
     ]
 }

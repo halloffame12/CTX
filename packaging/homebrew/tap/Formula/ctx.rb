@@ -27,8 +27,11 @@ class Ctx < Formula
   elsif OS.linux? && Hardware::CPU.intel?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-x86_64"
     sha256 "9999988f2cfa7e79db231ce179f2da0d20ec8f57d59af19761d369a335b1c710"
+  elsif OS.windows?
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-x86_64.exe"
+    sha256 "2ab7a0ff0e3ff0ce4f64126708a42387a41c1860800557539877534686920ba5"
   else
-    odie "ctx: unsupported platform — only macOS (Intel/ARM) and Linux (Intel/ARM) are supported"
+    odie "ctx: unsupported platform — only macOS (Intel/ARM), Linux (Intel/ARM), and Windows (Intel) are supported"
   end
 
   def install
