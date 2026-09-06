@@ -12,20 +12,20 @@ jobs:
   # ---- version consistency gate ---------------------------------------------
   # Fails the release before publishing if any packaging version diverges from
   # Cargo.toml (single source of truth).
-  verify-version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check package versions match Cargo.toml
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(grep '^version' Cargo.toml | head -1 | sed -E 's/version *= *"([^"]+)"/\1/')"
-          tag="${GITHUB_REF_NAME#v}"
-          if [ "$tag" != "$version" ]; then
-            echo "tag v${tag} != Cargo version ${version}" >&2
-            exit 1
-          fi
+verify-version:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - name: Check package versions match Cargo.toml
+          shell: bash
+          run: |
+            set -euo pipefail
+            version="$(grep '^version' Cargo.toml | head -1 | sed -E 's/version *= *"([^"]+)"/\1/')"
+            tag="${GITHUB_REF#refs/tags/v}"
+            if [ "$tag" != "$version" ]; then
+              echo "tag v${tag} != Cargo version ${version}" >&2
+              exit 1
+            fi
           for f in packages/npm/cli/package.json \
                    packages/npm/linux-x64/package.json \
                    packages/npm/linux-arm64/package.json \
