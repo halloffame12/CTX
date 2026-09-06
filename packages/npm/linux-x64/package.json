@@ -1,6 +1,6 @@
 {
   "name": "ctxai-linux-x64",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "ctx native binary for Linux x64",
   "os": [
     "linux"
@@ -21,3 +21,4 @@
     "url": "https://github.com/halloffame12/CTX.git"
   }
 }
+

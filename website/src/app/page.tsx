@@ -31,7 +31,7 @@ const jsonLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   license: "https://github.com/halloffame12/CTX/blob/main/LICENSE",
   author: { "@type": "Person", name: "Sumit Chauhan", url: "https://github.com/halloffame12" },
-  softwareVersion: "0.1.4",
+  softwareVersion: "0.1.5",
   codeRepository: "https://github.com/halloffame12/CTX",
 };
 
@@ -162,7 +162,7 @@ export default function Home() {
             <div>
               <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 font-mono text-xs text-ink-soft">
                 <span className="size-1.5 rounded-full bg-accent" />
-                v0.1.4 · open source · MIT · no telemetry
+                v0.1.5 · open source · MIT · no telemetry
               </p>
               <h1 className="mt-6 text-[clamp(2.25rem,4.5vw+0.5rem,4.25rem)] font-bold leading-[1.06] tracking-tight text-ink">
                 AI agents hallucinate code.{" "}
@@ -441,7 +441,7 @@ cd CTX && cargo build --release
                 />
                 <CodeBlock
                   title="binaries — every GitHub release"
-                  code={`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-x86_64
+                  code={`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.5/ctx-linux-x86_64
 chmod +x ctx-linux-x86_64
 sudo mv ctx-linux-x86_64 /usr/local/bin/ctx`}
                 />

@@ -1,6 +1,6 @@
 {
   "name": "ctxai-darwin-x64",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "ctx native binary for macOS x64",
   "os": [
     "darwin"
@@ -21,3 +21,4 @@
     "url": "https://github.com/halloffame12/CTX.git"
   }
 }
+

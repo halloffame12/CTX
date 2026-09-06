@@ -21,6 +21,8 @@ ctx diff                      semantic diff of symbols between refs
 ctx skeleton src/models.py    body-less structural skeleton
 ctx watch                     keep the graph in sync while editing
 ctx mcp                       run the MCP server over stdio
+ctx stats                     show index statistics (files, symbols, dependencies, db size)
+ctx version                   print version information
 ```
 
 ## Why does it exist?
@@ -58,7 +60,7 @@ whichever ecosystem you already use:
 | **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-ctx && scoop install ctx` |
 | **Node.js** (npm) | `npm install -g ctxai-cli` |
 | **Run without installing** | `npx ctxai-cli --version` |
-| **Direct** | `curl -fsSL https://ctx.dev/install.sh \| sh` (Unix) or `irm https://ctx.dev/install.ps1 \| iex` (Windows) — or grab a binary from [GitHub Releases](https://github.com/halloffame12/CTX/releases) |
+| **Direct** | `curl -fsSL https://ctx.dev/install.sh | sh` (Unix) or `irm https://ctx.dev/install.ps1 | iex` (Windows) — or grab a binary from [GitHub Releases](https://github.com/halloffame12/CTX/releases) |
 
 > The installer scripts currently live in the repository (`scripts/install.sh`,
 > `scripts/install.ps1`). Until `ctx.dev` is live you can run them directly:
@@ -93,7 +95,7 @@ cargo install --path .        # installs `ctx` to PATH
 Version is read from the git tag / Cargo.toml:
 
 ```bash
-ctx --version   # ctx 0.1.4
+ctx --version   # ctx 0.1.5
 ctx version     # same
 ```
 
@@ -139,20 +141,20 @@ Commands:
   init        Create .ctx, write a default config and index the project
   doctor      Inspect the project and report the health of the ctx index
   skeleton    Show a body-less structural skeleton of a source file
-  search      Search the graph for symbols or files
-  symbol      Details about a symbol: definition, references, dependencies
-  deps        Show what a file imports and what imports it
-  impact      Analyze impact of changing a symbol or file
+  search     Search the graph for symbols or files
+  symbol     Details about a symbol: definition, references, dependencies
+  deps       Show what a file imports and what imports it
+  impact     Analyze impact of changing a symbol or file
   context     Build a relevance-ranked context package for a task
   changed     Show symbols changed in the working tree or between refs
-  diff        Semantic diff of symbols between two git refs
+  diff       Semantic diff of symbols between two git refs
   schema      Print the SQLite graph schema
-  benchmark   Re-run an index pass and print incremental timing
-  watch       Watch the project and keep the graph in sync
-  mcp         Run the Model Context Protocol server over stdio
-  stats       Show index statistics (files, symbols, dependencies, db size)
-  version     Print version information
-  help        Print this message or the help of the given subcommand(s)
+  benchmark  Re-run an index pass and print incremental timing
+  watch      Watch the project and keep the graph in sync
+  mcp        Run the Model Context Protocol server over stdio
+  stats      Show index statistics (files, symbols, dependencies, db size)
+  version    Print version information
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -R, --root <DIR>  Project root (defaults to the nearest directory containing .ctx)
@@ -166,14 +168,14 @@ Options:
 
 Per-command help always available:
 
-```bash
+```
 ctx context --help
 ctx impact --help
 ```
 
 ### `ctx context` — the flagship
 
-```bash
+```
 ctx context "add Google OAuth authentication"
 ```
 
@@ -182,21 +184,12 @@ reasons it was selected:
 
 ```
 Suggested files:
-  src/auth/providers.ts  (score 0.91, ~180 tokens)
+  src/auth/oauth.ts  (score 0.91, ~180 tokens)
       + exact symbol match `OAuthProvider`
       + path matches keyword `auth`
       + imported by 4 files (hub)
       + modified in working tree
-```
-
-Budgeting (token counts are **estimates** — the heuristic is bytes/4):
-
-```bash
-ctx context "add OAuth" --max-tokens 12000
-```
-
-```
-Context budget: 7,842 / 12,000 tokens (estimate)
+Context budget: 1,842 / 12,000 tokens (estimate)
 Omitted: 13 lower-relevance files
 ```
 
@@ -206,7 +199,7 @@ scoring bonus automatically (`--no-git` disables it).
 
 ### `ctx impact`
 
-```bash
+```
 ctx impact UserService.updateUser --depth 5 --json
 ```
 
@@ -224,7 +217,7 @@ Traversal is BFS with per-node cycle protection, bounded by `--depth`.
 
 ### `ctx doctor`
 
-```bash
+```
 ctx doctor          # human-readable
 ctx doctor --json   # machine-readable
 ```
@@ -235,7 +228,7 @@ support — with a final `Status: READY / STALE / NOT INITIALIZED`.
 
 ### `ctx search`
 
-```bash
+```
 ctx search "user"                    # case-insensitive name match
 ctx search --kind struct "user"      # filter by symbol kind
 ctx search --kind function User      # kind aliases: fn, const, alias
@@ -250,18 +243,18 @@ rejected (exit 2).
 
 ### `ctx stats` / `ctx version`
 
-```bash
+```
 ctx stats            # files, symbols, dependency edges, index.db size
 ctx stats --json
-ctx version          # ctx 0.1.4
-ctx version --json   # {"name":"ctx","version":"0.1.4"}
+ctx version          # ctx 0.1.5
+ctx version --json   # {"name":"ctx","version":"0.1.5"}
 ```
 
 ## JSON mode
 
 Every query command has deterministic JSON output:
 
-```bash
+```
 ctx search User --json
 ctx symbol UserService --json
 ctx deps src/user.ts --json
@@ -283,7 +276,7 @@ stderr.
 
 ## MCP server
 
-```bash
+```
 ctx mcp                      # speaks MCP over stdio
 ctx -R /path/to/project mcp  # or target a project root explicitly
 npx ctxai-cli mcp            # no install required
@@ -309,7 +302,7 @@ Tools exposed:
 | `ctx_impact` | change-impact analysis (`symbol` or `path`, `depth`) |
 | `ctx_context` | ranked context package (`task`, `include_bodies`, `max_tokens`) |
 | `ctx_changed` | files & symbols changed since a ref |
-| `ctx_diff` | symbol-level diff between refs (single base resolves to its merge-base with HEAD) |
+| `ctx_diff` | semantic diff of symbols between refs (single base resolves to its merge-base with HEAD) |
 | `ctx_stats` | index statistics (files, symbols, dependencies, db size) |
 
 ### opencode
@@ -329,7 +322,7 @@ Add `ctx` as an MCP server (see opencode's MCP configuration docs):
 
 ### Claude / Claude Desktop
 
-```json
+```
 {
   "mcpServers": {
     "ctx": {
@@ -344,7 +337,7 @@ Add `ctx` as an MCP server (see opencode's MCP configuration docs):
 
 Settings → MCP → Add → type `command`, then:
 
-```json
+```
 {
   "command": "npx",
   "args": ["-y", "ctxai-cli", "mcp", "-R", "/absolute/path/to/project"]
@@ -363,7 +356,6 @@ args: -y ctxai-cli mcp -R /absolute/path/to/project
 > `npx` form requires no global install. If `ctx` is already on your PATH,
 > replace `"command": "npx", "args": ["-y", "ctxai-cli", ...]` with
 > `"command": "ctx", "args": ["mcp", ...]`.
-```
 
 ## Supported languages
 
@@ -400,6 +392,8 @@ are still extracted, and the file is reported in `parse_errors` for the
 ```toml
 [index]
 exclude = ["node_modules", "target", ".git", ".ctx", "dist", "build", "vendor"]
+max_file_size = 2097152
+follow_symlinks = false
 
 [context]
 max_tokens = 12000

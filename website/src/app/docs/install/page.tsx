@@ -73,7 +73,7 @@ cd CTX && cargo build --release
         the download:
       </P>
       <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
-{`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-x86_64
+{`curl -LO https://github.com/halloffame12/CTX/releases/download/v0.1.5/ctx-linux-x86_64
 shasum -a 256 ctx-linux-x86_64   # compare against checksums.txt
 chmod +x ctx-linux-x86_64
 sudo mv ctx-linux-x86_64 /usr/local/bin/ctx`}
