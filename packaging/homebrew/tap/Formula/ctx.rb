@@ -17,19 +17,19 @@ class Ctx < Formula
 
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-macos-aarch64"
-    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    sha256 "56843e2fca3c5b57b49bd9803850400bd6e4f7dfa693e6628c8daccdc8afb224"
   elsif OS.mac? && Hardware::CPU.intel?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-macos-x86_64"
-    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    sha256 "7c953291d3b283de40d43b28d6a91d654aa219fcef843a21fdd4cc13960e7176"
   elsif OS.linux? && Hardware::CPU.arm?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-linux-aarch64"
-    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    sha256 "abca9cb4808a18ba7cfb08b825373a49d3cc8e19b170a9402cb68b529b11bede"
   elsif OS.linux? && Hardware::CPU.intel?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-linux-x86_64"
-    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    sha256 "e6d4cd243a564d36dc9c75a793ede8d7354357167acad67baf49413d2b219608"
   elsif OS.windows?
     url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-windows-x86_64.exe"
-    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    sha256 "477736613cdfd7b64b6726f72ed62c8f3875873cbe03919615a47d3675ecbd38"
   else
     odie "ctx: unsupported platform — only macOS (Intel/ARM), Linux (Intel/ARM), and Windows (Intel) are supported"
   end
