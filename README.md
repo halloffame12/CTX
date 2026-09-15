@@ -95,7 +95,7 @@ cargo install --path .        # installs `ctx` to PATH
 Version is read from the git tag / Cargo.toml:
 
 ```bash
-ctx --version   # ctx 0.1.5
+ctx --version   # ctx 0.1.6
 ctx version     # same
 ```
 
@@ -246,8 +246,8 @@ rejected (exit 2).
 ```
 ctx stats            # files, symbols, dependency edges, index.db size
 ctx stats --json
-ctx version          # ctx 0.1.5
-ctx version --json   # {"name":"ctx","version":"0.1.5"}
+ctx version          # ctx 0.1.6
+ctx version --json   # {"name":"ctx","version":"0.1.6"}
 ```
 
 ## JSON mode

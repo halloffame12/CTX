@@ -2,6 +2,24 @@
 
 All notable changes to `ctx` are documented here.
 
+## 0.1.6
+
+### Fixed
+- Release pipeline `verify-version` job had broken YAML indentation, so no
+  release job ever ran ("No jobs were run"); restored and verified all four
+  jobs parse (`verify-version`, `release`, `checksums`, `publish`).
+- `packages/npm/cli/package.json` `optionalDependencies` pins synced to the
+  release version (were one release behind, failing `package-validation`).
+- Winget manifests moved to schema 1.12.0 (1.6.0 is rejected by repository
+  validation); locale file now uses the `defaultLocale` schema header.
+
+### Changed
+- This is the first release built end-to-end by the repaired pipeline:
+  version-gated, six-platform matrix with static Windows CRT, functional
+  smoke test (init → search → doctor), checksums, and provenance npm publish.
+- The 0.1.5 GitHub release was superseded without a clean CI build and has
+  been removed; 0.1.6 replaces it.
+
 ## 0.1.4
 
 ### Fixed

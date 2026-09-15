@@ -1,6 +1,6 @@
 {
   "name": "ctxai-windows-arm64",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "ctx native binary for Windows ARM64",
   "os": [
     "win32"
