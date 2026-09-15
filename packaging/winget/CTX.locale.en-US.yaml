@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.6.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 #
 # ctx — WinGet locale manifest (en-US)
 PackageIdentifier: halloffame12.CTX
@@ -27,4 +27,4 @@ Tags:
   - ai
 ReleaseNotes: See https://github.com/halloffame12/CTX/releases
 ManifestType: defaultLocale
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0
