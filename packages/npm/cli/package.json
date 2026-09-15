@@ -22,12 +22,12 @@
     "node": ">=16"
   },
   "optionalDependencies": {
-    "ctxai-linux-x64": "0.1.4",
-    "ctxai-linux-arm64": "0.1.4",
-    "ctxai-darwin-x64": "0.1.4",
-    "ctxai-darwin-arm64": "0.1.4",
-    "ctxai-win32-x64": "0.1.4",
-    "ctxai-windows-arm64": "0.1.4"
+    "ctxai-linux-x64": "0.1.5",
+    "ctxai-linux-arm64": "0.1.5",
+    "ctxai-darwin-x64": "0.1.5",
+    "ctxai-darwin-arm64": "0.1.5",
+    "ctxai-win32-x64": "0.1.5",
+    "ctxai-windows-arm64": "0.1.5"
   },
   "keywords": [
     "ctx",
