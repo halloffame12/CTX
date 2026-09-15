@@ -13,23 +13,23 @@
 class Ctx < Formula
   desc "Codebase intelligence and context engine for AI coding agents"
   homepage "https://github.com/halloffame12/CTX"
-  version "0.1.4"
+  version "0.1.6"
 
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-macos-aarch64"
-    sha256 "d113d88ee683cf08cfae28138be1303c24f88edf7996d65d2961699506c5f9e3"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-macos-aarch64"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   elsif OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-macos-x86_64"
-    sha256 "d63bd37d06fc42f4b79543a7f01a9fc156cdfd1fa8fa2e8fe8dabfd10da3b562"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-macos-x86_64"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-aarch64"
-    sha256 "7d1a8611571ee7d45290f084b401b5f18f47bad2a8f57a9f69dbd0f20e12d3f9"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-linux-aarch64"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-linux-x86_64"
-    sha256 "9999988f2cfa7e79db231ce179f2da0d20ec8f57d59af19761d369a335b1c710"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-linux-x86_64"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   elsif OS.windows?
-    url "https://github.com/halloffame12/CTX/releases/download/v0.1.4/ctx-windows-x86_64.exe"
-    sha256 "2ab7a0ff0e3ff0ce4f64126708a42387a41c1860800557539877534686920ba5"
+    url "https://github.com/halloffame12/CTX/releases/download/v0.1.6/ctx-windows-x86_64.exe"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   else
     odie "ctx: unsupported platform — only macOS (Intel/ARM), Linux (Intel/ARM), and Windows (Intel) are supported"
   end
