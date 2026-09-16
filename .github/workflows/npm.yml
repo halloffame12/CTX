@@ -113,5 +113,34 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: npx ctxai-cli --version
-        run: npx -y ctxai-cli@${{ needs.verify.outputs.version }} --version
+      - name: Wait for registry propagation
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.verify.outputs.version }}"
+          for i in $(seq 1 30); do
+            if npm view "ctxai-cli@${version}" version >/dev/null 2>&1; then
+              echo "ctxai-cli@${version} visible after ${i} poll(s)"
+              exit 0
+            fi
+            echo "poll ${i}: not visible yet, sleeping 10s"
+            sleep 10
+          done
+          echo "ctxai-cli@${version} never became visible on the registry" >&2
+          exit 1
+      - name: Verify ctxai-cli --version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.verify.outputs.version }}"
+          got="$(npx -y ctxai-cli@${version} --version)"
+          echo "installed ctxai-cli reports: ${got}"
+          [ "${got}" = "ctx ${version}" ] || { echo "version mismatch: expected 'ctx ${version}', got '${got}'" >&2; exit 1; }
+      - name: Verify platform optional dependency resolves on this runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.verify.outputs.version }}"
+          npm view "ctxai-linux-x64@${version}" version >/dev/null 2>&1 \
+            || { echo "ctxai-linux-x64@${version} missing from registry" >&2; exit 1; }
+          echo "ctxai-linux-x64@${version} OK"
