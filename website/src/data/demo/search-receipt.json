@@ -1,0 +1,15 @@
+[
+  {
+    "end_line": 27,
+    "exported": true,
+    "file": "src/payments/receipt.ts",
+    "id": 37,
+    "kind": "function",
+    "name": "printReceipt",
+    "parent": null,
+    "path": "src/payments/receipt.ts",
+    "signature": "async function printReceipt( printer: Printer, items: Product[], discount: number, currency: Currency, ): Promise<PrinterRequest> { const lines = []; for (const item of items) { lines.push(`${item.name} ΓÇö ${item.price} ${currency}`); } if (...",
+    "start_line": 12,
+    "visibility": null
+  }
+]

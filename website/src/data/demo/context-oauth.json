@@ -1,0 +1,601 @@
+{
+  "architecture": [
+    "  auth/",
+    "  cart/",
+    "  catalog/",
+    "  db/",
+    "  payments/",
+    "src/",
+    "..."
+  ],
+  "budget": 12000,
+  "budget_exceeded": false,
+  "confidence": "low_medium",
+  "direct_match_count": 9,
+  "files": [
+    {
+      "confidence": "high",
+      "internal_dependencies": 16,
+      "language": "typescript",
+      "path": "src/db/session.ts",
+      "reasons": [
+        "signature mentions `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "exact symbol match `authenticate`",
+        "symbol matches `authentication` by prefix",
+        "symbol contains keyword `auth`",
+        "signature mentions `passwd`",
+        "signature mentions `password`",
+        "signature mentions `passwd`",
+        "framework-relevant directory",
+        "imported by 2 files (hub)",
+        "imported by a relevant file (dependency)",
+        "framework-relevant directory",
+        "imported by 2 files (hub)",
+        "imports a relevant file (dependent)",
+        "framework-relevant directory",
+        "imported by 2 files (hub)"
+      ],
+      "score": 18.774653072167027,
+      "skeleton": "import { User, createSession } from \"./users\";\nimport { login, register } from \"../auth/login\";\n\nexport interface Session {\n  id: string;\n  userId: string;\n  expiresAt: number;\n}\n\nexport async function authenticate(email: string, password: string): Promise<Session | null> { /* ... implementation hidden ... */ }\n\nexport async function signup(user: User): Promise<void> { /* ... implementation hidden ... */ }",
+      "tokens": 102
+    },
+    {
+      "confidence": "high",
+      "language": "typescript",
+      "path": "src/auth/password.ts",
+      "reasons": [
+        "signature mentions `returning`",
+        "exact symbol match `hashPassword`",
+        "path matches keyword `auth`",
+        "symbol matches `passwd` by prefix",
+        "exact symbol match `verifyPassword`",
+        "path matches keyword `auth`",
+        "symbol matches `passwd` by prefix",
+        "path matches keyword `password`",
+        "path matches keyword `auth`",
+        "path matches keyword `passwd`",
+        "framework-relevant directory",
+        "imported by 3 files (hub)",
+        "imported by a relevant file (dependency)",
+        "path matches keyword `password`",
+        "path matches keyword `auth`",
+        "path matches keyword `passwd`",
+        "framework-relevant directory",
+        "imported by 3 files (hub)"
+      ],
+      "score": 17.846573590279974,
+      "skeleton": "import { randomBytes, scrypt, timingSafeEqual } from \"crypto\";\n\nexport function hashPassword(password: string): Promise<string> { /* ... implementation hidden ... */ }\n\nexport async function verifyPassword(\n  password: string,\n  stored: string,\n): Promise<boolean> { /* ... implementation hidden ... */ }",
+      "tokens": 76,
+      "unresolved_imports": 9
+    },
+    {
+      "confidence": "high",
+      "internal_dependencies": 25,
+      "language": "typescript",
+      "path": "src/auth/login.ts",
+      "reasons": [
+        "exact symbol match `LoginInput`",
+        "signature mentions `password`",
+        "path matches keyword `auth`",
+        "signature mentions `passwd`",
+        "exact symbol match `LoginResult`",
+        "path matches keyword `auth`",
+        "exact symbol match `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "path matches keyword `auth`",
+        "signature mentions `passwd`",
+        "signature mentions `login`",
+        "path matches keyword `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "path matches keyword `auth`",
+        "signature mentions `passwd`",
+        "path matches keyword `login`",
+        "path matches keyword `auth`",
+        "framework-relevant directory",
+        "imported by 2 files (hub)",
+        "imported by a relevant file (dependency)",
+        "path matches keyword `login`",
+        "path matches keyword `auth`",
+        "framework-relevant directory",
+        "imported by 2 files (hub)",
+        "imports a relevant file (dependent)",
+        "path matches keyword `login`",
+        "path matches keyword `auth`",
+        "framework-relevant directory",
+        "imported by 2 files (hub)"
+      ],
+      "score": 14.774653072167027,
+      "skeleton": "import { hashPassword, verifyPassword } from \"./password\";\nimport { findUserByEmail, createSession } from \"../db/users\";\nimport { Session } from \"../db/session\";\n\nexport interface LoginInput {\n  email: string;\n  password: string;\n}\n\nexport interface LoginResult {\n  ok: boolean;\n  session?: Session;\n  error?: string;\n}\n\nexport async function login(input: LoginInput): Promise<LoginResult> { /* ... implementation hidden ... */ }\n\nexport async function register(input: LoginInput): Promise<LoginResult> { /* ... implementation hidden ... */ }",
+      "tokens": 135
+    },
+    {
+      "confidence": "high",
+      "internal_dependencies": 64,
+      "language": "typescript",
+      "path": "src/cart/cart.ts",
+      "reasons": [
+        "signature mentions `returning`",
+        "exact symbol match `addProduct`",
+        "signature mentions `returning`"
+      ],
+      "score": 7.173286795139986,
+      "skeleton": "import { Printer, PrinterRequest, printReceipt } from \"../payments/receipt\";\nimport { applyPromo, PromoCode } from \"./promo\";\nimport { loadProduct, Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface CartLine {\n  productId: string;\n  quantity: number;\n}\n\nexport interface Cart {\n  id: string;\n  lines: CartLine[];\n  currency: Currency;\n}\n\nexport function emptyCart(id: string, currency: Currency): Cart { /* ... implementation hidden ... */ }\n\nexport async function addProduct(\n  cart: Cart,\n  productId: string,\n  quantity = 1,\n): Promise<void> { /* ... implementation hidden ... */ }\n\nexport async function checkout(\n  cart: Cart,\n  promo: PromoCode | null,\n  printer: Printer,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\nexport function total(cart: Cart): number { /* ... implementation hidden ... */ }",
+      "tokens": 217
+    },
+    {
+      "confidence": "high",
+      "language": "typescript",
+      "path": "src/main.ts",
+      "reasons": [
+        "signature mentions `add`",
+        "signature mentions `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "signature mentions `passwd`"
+      ],
+      "score": 5.0,
+      "skeleton": "import { Cart, checkout, emptyCart, addProduct } from \"../cart/cart\";\nimport { applyPromo } from \"../cart/promo\";\nimport { login } from \"../auth/login\";\nimport { listProducts, loadProduct } from \"../catalog/products\";\nimport { formatMoney, parseMoney } from \"../money\";\n\nconst cart: Cart = emptyCart(\"cart-1\", \"USD\");\n\nexport async function runShop(): Promise<string> { /* ... implementation hidden ... */ }",
+      "tokens": 101
+    },
+    {
+      "confidence": "medium",
+      "internal_dependencies": 4,
+      "language": "typescript",
+      "path": "src/db/users.ts",
+      "reasons": [
+        "signature mentions `password`",
+        "signature mentions `passwd`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "signature mentions `passwd`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "signature mentions `passwd`",
+        "signature mentions `returning`",
+        "framework-relevant directory",
+        "imported by 4 files (hub)",
+        "imported by a relevant file (dependency)",
+        "framework-relevant directory",
+        "imported by 4 files (hub)",
+        "imports a relevant file (dependent)",
+        "framework-relevant directory",
+        "imported by 4 files (hub)"
+      ],
+      "score": 4.279824785325228,
+      "skeleton": "import { PasswordHash } from \"../auth/password\";\nimport { Session } from \"./session\";\n\nexport interface User {\n  id: string;\n  email: string;\n  passwordHash: PasswordHash;\n}\n\nexport async function findUserByEmail(\n  email: string,\n): Promise<User | null> { /* ... implementation hidden ... */ }\n\nexport async function createUser(email: string, passwordHash: string): Promise<User> { /* ... implementation hidden ... */ }\n\nexport async function createSession(userId: string): Promise<Session> { /* ... implementation hidden ... */ }",
+      "tokens": 132
+    },
+    {
+      "confidence": "medium",
+      "language": "typescript",
+      "path": "src/catalog/products.ts",
+      "reasons": [
+        "signature mentions `returning`",
+        "imported by 3 files (hub)",
+        "imported by a relevant file (dependency)",
+        "imported by 3 files (hub)"
+      ],
+      "score": 3.0639022697939713,
+      "skeleton": "export interface Product {\n  id: string;\n  name: string;\n  price: number;\n  inStock: boolean;\n}\n\nconst products: Product[] = [\n  { id: \"p1\", name: \"T-Shirt\", price: 19.99, inStock: true },\n  { id: \"p2\", name: \"Mug\", price: 12.5, inStock: true },\n  { id: \"p3\", name: \"Sticker\", price: 3.0, inStock: false },\n];\n\nexport async function loadProduct(id: string): Promise<Product | null> { /* ... implementation hidden ... */ }\n\nexport async function listProducts(): Promise<Product[]> { /* ... implementation hidden ... */ }",
+      "tokens": 129
+    },
+    {
+      "confidence": "very_low",
+      "internal_dependencies": 4,
+      "language": "typescript",
+      "path": "src/payments/receipt.ts",
+      "reasons": [
+        "imported by a relevant file (dependency)",
+        "imported by 3 files (hub)"
+      ],
+      "score": 3.0639022697939713,
+      "skeleton": "import { Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface PrinterRequest {\n  lines: string[];\n}\n\nexport interface Printer {\n  print(req: PrinterRequest): void;\n}\n\nexport async function printReceipt(\n  printer: Printer,\n  items: Product[],\n  discount: number,\n  currency: Currency,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }",
+      "tokens": 97
+    },
+    {
+      "confidence": "medium",
+      "internal_dependencies": 1,
+      "language": "typescript",
+      "path": "src/cart/promo.ts",
+      "reasons": [
+        "signature mentions `type`",
+        "signature mentions `returning`",
+        "imported by 2 files (hub)",
+        "imported by a relevant file (dependency)",
+        "imported by 2 files (hub)",
+        "imports a relevant file (dependent)",
+        "imported by 2 files (hub)"
+      ],
+      "score": 2.991981751681026,
+      "skeleton": "import { Cart } from \"./cart\";\n\nexport type PromoCode = \"SAVE10\" | \"WELCOME5\" | \"FREESHIP\";\n\nexport interface DiscountResult {\n  amount: number;\n  applied: PromoCode;\n}\n\nexport function applyPromo(code: PromoCode, subtotal: number): number { /* ... implementation hidden ... */ }\n\nexport function applyPromoToCart(\n  cart: Cart,\n  code: PromoCode,\n): DiscountResult { /* ... implementation hidden ... */ }\n\nfunction round(value: number): number { /* ... implementation hidden ... */ }",
+      "tokens": 121
+    },
+    {
+      "confidence": "medium",
+      "language": "typescript",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `type`",
+        "signature mentions `returning`",
+        "imported by 2 files (hub)",
+        "imported by a relevant file (dependency)",
+        "imported by 2 files (hub)"
+      ],
+      "score": 2.991981751681026,
+      "skeleton": "export type Currency = \"USD\" | \"EUR\" | \"CAD\";\n\nexport interface Money {\n  amount: number;\n  currency: Currency;\n}\n\nexport function formatMoney(value: number, currency: Currency): string { /* ... implementation hidden ... */ }\n\nexport function parseMoney(value: string, currency: Currency): Money { /* ... implementation hidden ... */ }",
+      "tokens": 83
+    }
+  ],
+  "files_analyzed": 10,
+  "follow_only_count": 1,
+  "git_changes_considered": true,
+  "is_estimate": true,
+  "keywords": [
+    "add",
+    "google",
+    "oauth",
+    "login",
+    "returning",
+    "shoppers",
+    "don",
+    "type",
+    "password"
+  ],
+  "omitted_files": 0,
+  "relevant_dependencies": [
+    "src/db/users.ts",
+    "src/auth/login.ts",
+    "crypto",
+    "src/auth/password.ts",
+    "src/db/session.ts",
+    "src/payments/receipt.ts",
+    "src/cart/promo.ts",
+    "src/catalog/products.ts",
+    "src/money.ts",
+    "src/cart/cart.ts"
+  ],
+  "relevant_symbols": [
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 10,
+      "name": "authenticate",
+      "path": "src/db/session.ts",
+      "reasons": [
+        "signature mentions `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "exact symbol match `authenticate`",
+        "symbol matches `authentication` by prefix",
+        "symbol contains keyword `auth`",
+        "signature mentions `passwd`"
+      ],
+      "score": 18.0,
+      "signature": "async function authenticate(email: string, password: string): Promise<Session | null> { const result = await login({ email, password }); return result.ok ? result.session ?? null : null; }"
+    },
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 3,
+      "name": "hashPassword",
+      "path": "src/auth/password.ts",
+      "reasons": [
+        "signature mentions `returning`",
+        "exact symbol match `hashPassword`",
+        "path matches keyword `auth`",
+        "symbol matches `passwd` by prefix"
+      ],
+      "score": 14.0,
+      "signature": "function hashPassword(password: string): Promise<string> { const salt = randomBytes(16).toString(\"hex\"); return new Promise("
+    },
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 13,
+      "name": "verifyPassword",
+      "path": "src/auth/password.ts",
+      "reasons": [
+        "exact symbol match `verifyPassword`",
+        "path matches keyword `auth`",
+        "symbol matches `passwd` by prefix"
+      ],
+      "score": 13.0,
+      "signature": "async function verifyPassword( password: string, stored: string, ): Promise<boolean> { const [salt, hash] = stored.split(\":\"); const derived = await new Promise<Buffer>((resolve, reject) => { scrypt(password, salt, 64, (err, derivedKey) => ..."
+    },
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 16,
+      "name": "login",
+      "path": "src/auth/login.ts",
+      "reasons": [
+        "exact symbol match `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "path matches keyword `auth`",
+        "signature mentions `passwd`"
+      ],
+      "score": 12.0,
+      "signature": "async function login(input: LoginInput): Promise<LoginResult> { const user = await findUserByEmail(input.email); if (!user) { return { ok: false, error: \"no user with that email\" }; } const valid = await verifyPassword(input.password, user...."
+    },
+    {
+      "confidence": "high",
+      "kind": "interface",
+      "line": 5,
+      "name": "LoginInput",
+      "path": "src/auth/login.ts",
+      "reasons": [
+        "exact symbol match `LoginInput`",
+        "signature mentions `password`",
+        "path matches keyword `auth`",
+        "signature mentions `passwd`"
+      ],
+      "score": 11.0,
+      "signature": "interface LoginInput { email: string; password: string; }"
+    },
+    {
+      "confidence": "high",
+      "kind": "interface",
+      "line": 10,
+      "name": "LoginResult",
+      "path": "src/auth/login.ts",
+      "reasons": [
+        "exact symbol match `LoginResult`",
+        "path matches keyword `auth`"
+      ],
+      "score": 9.0,
+      "signature": "interface LoginResult { ok: boolean; session?: Session; error?: string; }"
+    },
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 21,
+      "name": "addProduct",
+      "path": "src/cart/cart.ts",
+      "reasons": [
+        "exact symbol match `addProduct`"
+      ],
+      "score": 7.0,
+      "signature": "async function addProduct( cart: Cart, productId: string, quantity = 1, ): Promise<void> { const product = await loadProduct(productId); if (!product) throw new Error(`unknown product ${productId}`); cart.lines.push({ productId, quantity })..."
+    },
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 29,
+      "name": "register",
+      "path": "src/auth/login.ts",
+      "reasons": [
+        "signature mentions `login`",
+        "path matches keyword `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "path matches keyword `auth`",
+        "signature mentions `passwd`"
+      ],
+      "score": 6.0,
+      "signature": "async function register(input: LoginInput): Promise<LoginResult> { const passwordHash = await hashPassword(input.password); return { ok: true, error: undefined, session: undefined, passwordHash }; }"
+    },
+    {
+      "confidence": "medium",
+      "kind": "function",
+      "line": 9,
+      "name": "runShop",
+      "path": "src/main.ts",
+      "reasons": [
+        "signature mentions `add`",
+        "signature mentions `login`",
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "signature mentions `passwd`"
+      ],
+      "score": 5.0,
+      "signature": "async function runShop(): Promise<string> { await addProduct(cart, \"p1\", 2); await addProduct(cart, \"p2\", 1); const session = await login({ email: \"ada@example.com\", password: \"x\" }); if (!session.ok) return \"login failed\"; const products =..."
+    },
+    {
+      "confidence": "medium",
+      "kind": "function",
+      "line": 10,
+      "name": "findUserByEmail",
+      "path": "src/db/users.ts",
+      "reasons": [
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "signature mentions `passwd`"
+      ],
+      "score": 3.0,
+      "signature": "async function findUserByEmail( email: string, ): Promise<User | null> { if (email === \"ada@example.com\") { return { id: \"u1\", email, passwordHash: \"aabbcc\", }; } return null; }"
+    },
+    {
+      "confidence": "medium",
+      "kind": "function",
+      "line": 23,
+      "name": "createUser",
+      "path": "src/db/users.ts",
+      "reasons": [
+        "signature mentions `returning`",
+        "signature mentions `password`",
+        "signature mentions `passwd`"
+      ],
+      "score": 3.0,
+      "signature": "async function createUser(email: string, passwordHash: string): Promise<User> { return { id: `u-${Date.now()}`, email, passwordHash }; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 15,
+      "name": "signup",
+      "path": "src/db/session.ts",
+      "reasons": [
+        "signature mentions `password`",
+        "signature mentions `passwd`"
+      ],
+      "score": 2.0,
+      "signature": "async function signup(user: User): Promise<void> { await register({ email: user.email, password: \"default\" }); const session = await createSession(user.id); void session; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "interface",
+      "line": 4,
+      "name": "User",
+      "path": "src/db/users.ts",
+      "reasons": [
+        "signature mentions `password`",
+        "signature mentions `passwd`"
+      ],
+      "score": 2.0,
+      "signature": "interface User { id: string; email: string; passwordHash: PasswordHash; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 17,
+      "name": "emptyCart",
+      "path": "src/cart/cart.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function emptyCart(id: string, currency: Currency): Cart { return { id, lines: [], currency }; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 45,
+      "name": "total",
+      "path": "src/cart/cart.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function total(cart: Cart): number { return cart.lines.reduce((sum, line) => { return sum + line.quantity; }, 0); }"
+    },
+    {
+      "confidence": "low",
+      "kind": "type",
+      "line": 3,
+      "name": "PromoCode",
+      "path": "src/cart/promo.ts",
+      "reasons": [
+        "signature mentions `type`"
+      ],
+      "score": 1.0,
+      "signature": "type PromoCode = \"SAVE10\" | \"WELCOME5\" | \"FREESHIP\";"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 10,
+      "name": "applyPromo",
+      "path": "src/cart/promo.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function applyPromo(code: PromoCode, subtotal: number): number { switch (code) { case \"SAVE10\": return round(subtotal * 0.1); case \"WELCOME5\": return round(subtotal * 0.05); case \"FREESHIP\": return 0; } }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 21,
+      "name": "applyPromoToCart",
+      "path": "src/cart/promo.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function applyPromoToCart( cart: Cart, code: PromoCode, ): DiscountResult { const subtotal = cart.lines.reduce((sum, l) => sum + l.quantity, 0); return { amount: applyPromo(code, subtotal), applied: code }; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 29,
+      "name": "round",
+      "path": "src/cart/promo.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function round(value: number): number { return Math.round(value * 100) / 100; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 14,
+      "name": "loadProduct",
+      "path": "src/catalog/products.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "async function loadProduct(id: string): Promise<Product | null> { return products.find((p) => p.id === id) ?? null; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 18,
+      "name": "listProducts",
+      "path": "src/catalog/products.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "async function listProducts(): Promise<Product[]> { return products; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 27,
+      "name": "createSession",
+      "path": "src/db/users.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "async function createSession(userId: string): Promise<Session> { return { id: `s-${Date.now()}`, userId, expiresAt: Date.now() + 86_400_000 }; }"
+    },
+    {
+      "confidence": "low",
+      "kind": "type",
+      "line": 1,
+      "name": "Currency",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `type`"
+      ],
+      "score": 1.0,
+      "signature": "type Currency = \"USD\" | \"EUR\" | \"CAD\";"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 8,
+      "name": "formatMoney",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function formatMoney(value: number, currency: Currency): string { const symbol = currency === \"EUR\" ? \"Γé¼\" : currency === \"CAD\" ? \"C$\" : \"$\"; return `${symbol}${value.toFixed(2)}`;"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 13,
+      "name": "parseMoney",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `returning`"
+      ],
+      "score": 1.0,
+      "signature": "function parseMoney(value: string, currency: Currency): Money { const amount = Number.parseFloat(value.replace(/[^0-9.-]/g, \"\")); return { amount, currency }; }"
+    }
+  ],
+  "suggested_context": "# Context package for task: add Google OAuth login so returning shoppers don't have to type a password\n\n\n## src/db/session.ts (score 18.77)\nimport { User, createSession } from \"./users\";\nimport { login, register } from \"../auth/login\";\n\nexport interface Session {\n  id: string;\n  userId: string;\n  expiresAt: number;\n}\n\nexport async function authenticate(email: string, password: string): Promise<Session | null> { /* ... implementation hidden ... */ }\n\nexport async function signup(user: User): Promise<void> { /* ... implementation hidden ... */ }\n\n## src/auth/password.ts (score 17.85)\nimport { randomBytes, scrypt, timingSafeEqual } from \"crypto\";\n\nexport function hashPassword(password: string): Promise<string> { /* ... implementation hidden ... */ }\n\nexport async function verifyPassword(\n  password: string,\n  stored: string,\n): Promise<boolean> { /* ... implementation hidden ... */ }\n\n## src/auth/login.ts (score 14.77)\nimport { hashPassword, verifyPassword } from \"./password\";\nimport { findUserByEmail, createSession } from \"../db/users\";\nimport { Session } from \"../db/session\";\n\nexport interface LoginInput {\n  email: string;\n  password: string;\n}\n\nexport interface LoginResult {\n  ok: boolean;\n  session?: Session;\n  error?: string;\n}\n\nexport async function login(input: LoginInput): Promise<LoginResult> { /* ... implementation hidden ... */ }\n\nexport async function register(input: LoginInput): Promise<LoginResult> { /* ... implementation hidden ... */ }\n\n## src/cart/cart.ts (score 7.17)\nimport { Printer, PrinterRequest, printReceipt } from \"../payments/receipt\";\nimport { applyPromo, PromoCode } from \"./promo\";\nimport { loadProduct, Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface CartLine {\n  productId: string;\n  quantity: number;\n}\n\nexport interface Cart {\n  id: string;\n  lines: CartLine[];\n  currency: Currency;\n}\n\nexport function emptyCart(id: string, currency: Currency): Cart { /* ... implementation hidden ... */ }\n\nexport async function addProduct(\n  cart: Cart,\n  productId: string,\n  quantity = 1,\n): Promise<void> { /* ... implementation hidden ... */ }\n\nexport async function checkout(\n  cart: Cart,\n  promo: PromoCode | null,\n  printer: Printer,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\nexport function total(cart: Cart): number { /* ... implementation hidden ... */ }\n\n## src/main.ts (score 5.00)\nimport { Cart, checkout, emptyCart, addProduct } from \"../cart/cart\";\nimport { applyPromo } from \"../cart/promo\";\nimport { login } from \"../auth/login\";\nimport { listProducts, loadProduct } from \"../catalog/products\";\nimport { formatMoney, parseMoney } from \"../money\";\n\nconst cart: Cart = emptyCart(\"cart-1\", \"USD\");\n\nexport async function runShop(): Promise<string> { /* ... implementation hidden ... */ }\n\n## src/db/users.ts (score 4.28)\nimport { PasswordHash } from \"../auth/password\";\nimport { Session } from \"./session\";\n\nexport interface User {\n  id: string;\n  email: string;\n  passwordHash: PasswordHash;\n}\n\nexport async function findUserByEmail(\n  email: string,\n): Promise<User | null> { /* ... implementation hidden ... */ }\n\nexport async function createUser(email: string, passwordHash: string): Promise<User> { /* ... implementation hidden ... */ }\n\nexport async function createSession(userId: string): Promise<Session> { /* ... implementation hidden ... */ }\n\n## src/catalog/products.ts (score 3.06)\nexport interface Product {\n  id: string;\n  name: string;\n  price: number;\n  inStock: boolean;\n}\n\nconst products: Product[] = [\n  { id: \"p1\", name: \"T-Shirt\", price: 19.99, inStock: true },\n  { id: \"p2\", name: \"Mug\", price: 12.5, inStock: true },\n  { id: \"p3\", name: \"Sticker\", price: 3.0, inStock: false },\n];\n\nexport async function loadProduct(id: string): Promise<Product | null> { /* ... implementation hidden ... */ }\n\nexport async function listProducts(): Promise<Product[]> { /* ... implementation hidden ... */ }\n\n## src/payments/receipt.ts (score 3.06)\nimport { Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface PrinterRequest {\n  lines: string[];\n}\n\nexport interface Printer {\n  print(req: PrinterRequest): void;\n}\n\nexport async function printReceipt(\n  printer: Printer,\n  items: Product[],\n  discount: number,\n  currency: Currency,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\n## src/cart/promo.ts (score 2.99)\nimport { Cart } from \"./cart\";\n\nexport type PromoCode = \"SAVE10\" | \"WELCOME5\" | \"FREESHIP\";\n\nexport interface DiscountResult {\n  amount: number;\n  applied: PromoCode;\n}\n\nexport function applyPromo(code: PromoCode, subtotal: number): number { /* ... implementation hidden ... */ }\n\nexport function applyPromoToCart(\n  cart: Cart,\n  code: PromoCode,\n): DiscountResult { /* ... implementation hidden ... */ }\n\nfunction round(value: number): number { /* ... implementation hidden ... */ }\n\n## src/money.ts (score 2.99)\nexport type Currency = \"USD\" | \"EUR\" | \"CAD\";\n\nexport interface Money {\n  amount: number;\n  currency: Currency;\n}\n\nexport function formatMoney(value: number, currency: Currency): string { /* ... implementation hidden ... */ }\n\nexport function parseMoney(value: string, currency: Currency): Money { /* ... implementation hidden ... */ }\n",
+  "task": "add Google OAuth login so returning shoppers don't have to type a password",
+  "total_tokens": 1193,
+  "unresolved_file_count": 2
+}

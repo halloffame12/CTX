@@ -1,0 +1,67 @@
+[
+  {
+    "end_line": 7,
+    "exported": false,
+    "file": "src/main.ts",
+    "id": 29,
+    "kind": "constant",
+    "name": "cart",
+    "parent": null,
+    "path": "src/main.ts",
+    "signature": "cart: Cart = emptyCart(\"cart-1\", \"USD\")",
+    "start_line": 7,
+    "visibility": null
+  },
+  {
+    "end_line": 9,
+    "exported": true,
+    "file": "src/cart/cart.ts",
+    "id": 7,
+    "kind": "interface",
+    "name": "CartLine",
+    "parent": null,
+    "path": "src/cart/cart.ts",
+    "signature": "interface CartLine { productId: string; quantity: number; }",
+    "start_line": 6,
+    "visibility": null
+  },
+  {
+    "end_line": 15,
+    "exported": true,
+    "file": "src/cart/cart.ts",
+    "id": 8,
+    "kind": "interface",
+    "name": "Cart",
+    "parent": null,
+    "path": "src/cart/cart.ts",
+    "signature": "interface Cart { id: string; lines: CartLine[]; currency: Currency; }",
+    "start_line": 11,
+    "visibility": null
+  },
+  {
+    "end_line": 19,
+    "exported": true,
+    "file": "src/cart/cart.ts",
+    "id": 9,
+    "kind": "function",
+    "name": "emptyCart",
+    "parent": null,
+    "path": "src/cart/cart.ts",
+    "signature": "function emptyCart(id: string, currency: Currency): Cart { return { id, lines: [], currency }; }",
+    "start_line": 17,
+    "visibility": null
+  },
+  {
+    "end_line": 27,
+    "exported": true,
+    "file": "src/cart/promo.ts",
+    "id": 16,
+    "kind": "function",
+    "name": "applyPromoToCart",
+    "parent": null,
+    "path": "src/cart/promo.ts",
+    "signature": "function applyPromoToCart( cart: Cart, code: PromoCode, ): DiscountResult { const subtotal = cart.lines.reduce((sum, l) => sum + l.quantity, 0); return { amount: applyPromo(code, subtotal), applied: code }; }",
+    "start_line": 21,
+    "visibility": null
+  }
+]

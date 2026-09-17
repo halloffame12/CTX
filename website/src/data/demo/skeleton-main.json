@@ -1,0 +1,5 @@
+{
+  "language": "typescript",
+  "path": "src/main.ts",
+  "skeleton": "import { Cart, checkout, emptyCart, addProduct } from \"../cart/cart\";\nimport { applyPromo } from \"../cart/promo\";\nimport { login } from \"../auth/login\";\nimport { listProducts, loadProduct } from \"../catalog/products\";\nimport { formatMoney, parseMoney } from \"../money\";\n\nconst cart: Cart = emptyCart(\"cart-1\", \"USD\");\n\nexport async function runShop(): Promise<string> { /* ... implementation hidden ... */ }"
+}

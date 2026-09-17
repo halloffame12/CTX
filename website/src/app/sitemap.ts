@@ -6,6 +6,7 @@ const BASE = "https://ctx.sumitchauhan.me";
 
 const STATIC_PAGES = [
   { path: "", priority: 1, changeFrequency: "monthly" as const },
+  { path: "/playground", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/docs", priority: 0.9, changeFrequency: "monthly" as const },
   { path: "/docs/install", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/docs/commands", priority: 0.8, changeFrequency: "monthly" as const },

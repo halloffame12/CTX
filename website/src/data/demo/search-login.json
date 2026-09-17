@@ -1,0 +1,41 @@
+[
+  {
+    "end_line": 27,
+    "exported": true,
+    "file": "src/auth/login.ts",
+    "id": 3,
+    "kind": "function",
+    "name": "login",
+    "parent": null,
+    "path": "src/auth/login.ts",
+    "signature": "async function login(input: LoginInput): Promise<LoginResult> { const user = await findUserByEmail(input.email); if (!user) { return { ok: false, error: \"no user with that email\" }; } const valid = await verifyPassword(input.password, user....",
+    "start_line": 16,
+    "visibility": null
+  },
+  {
+    "end_line": 8,
+    "exported": true,
+    "file": "src/auth/login.ts",
+    "id": 1,
+    "kind": "interface",
+    "name": "LoginInput",
+    "parent": null,
+    "path": "src/auth/login.ts",
+    "signature": "interface LoginInput { email: string; password: string; }",
+    "start_line": 5,
+    "visibility": null
+  },
+  {
+    "end_line": 14,
+    "exported": true,
+    "file": "src/auth/login.ts",
+    "id": 2,
+    "kind": "interface",
+    "name": "LoginResult",
+    "parent": null,
+    "path": "src/auth/login.ts",
+    "signature": "interface LoginResult { ok: boolean; session?: Session; error?: string; }",
+    "start_line": 10,
+    "visibility": null
+  }
+]

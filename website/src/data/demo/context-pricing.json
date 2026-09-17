@@ -1,0 +1,140 @@
+{
+  "architecture": [
+    "  cart/",
+    "  catalog/",
+    "  payments/",
+    "src/",
+    "..."
+  ],
+  "budget": 12000,
+  "budget_exceeded": false,
+  "confidence": "high",
+  "direct_match_count": 3,
+  "files": [
+    {
+      "confidence": "high",
+      "language": "typescript",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `eur`",
+        "exact symbol match `formatMoney`",
+        "imported by 2 files (hub)"
+      ],
+      "score": 8.274653072167027,
+      "skeleton": "export type Currency = \"USD\" | \"EUR\" | \"CAD\";\n\nexport interface Money {\n  amount: number;\n  currency: Currency;\n}\n\nexport function formatMoney(value: number, currency: Currency): string { /* ... implementation hidden ... */ }\n\nexport function parseMoney(value: string, currency: Currency): Money { /* ... implementation hidden ... */ }",
+      "tokens": 83
+    },
+    {
+      "confidence": "medium",
+      "internal_dependencies": 4,
+      "language": "typescript",
+      "path": "src/payments/receipt.ts",
+      "reasons": [
+        "signature mentions `prices`",
+        "imported by 3 files (hub)",
+        "imports a relevant file (dependent)",
+        "imported by 3 files (hub)"
+      ],
+      "score": 3.1740388974966756,
+      "skeleton": "import { Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface PrinterRequest {\n  lines: string[];\n}\n\nexport interface Printer {\n  print(req: PrinterRequest): void;\n}\n\nexport async function printReceipt(\n  printer: Printer,\n  items: Product[],\n  discount: number,\n  currency: Currency,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }",
+      "tokens": 97
+    },
+    {
+      "confidence": "very_low",
+      "internal_dependencies": 64,
+      "language": "typescript",
+      "path": "src/cart/cart.ts",
+      "reasons": [
+        "imports a relevant file (dependent)"
+      ],
+      "score": 3.000752102356689,
+      "skeleton": "import { Printer, PrinterRequest, printReceipt } from \"../payments/receipt\";\nimport { applyPromo, PromoCode } from \"./promo\";\nimport { loadProduct, Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface CartLine {\n  productId: string;\n  quantity: number;\n}\n\nexport interface Cart {\n  id: string;\n  lines: CartLine[];\n  currency: Currency;\n}\n\nexport function emptyCart(id: string, currency: Currency): Cart { /* ... implementation hidden ... */ }\n\nexport async function addProduct(\n  cart: Cart,\n  productId: string,\n  quantity = 1,\n): Promise<void> { /* ... implementation hidden ... */ }\n\nexport async function checkout(\n  cart: Cart,\n  promo: PromoCode | null,\n  printer: Printer,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\nexport function total(cart: Cart): number { /* ... implementation hidden ... */ }",
+      "tokens": 217
+    },
+    {
+      "confidence": "low",
+      "language": "typescript",
+      "path": "src/catalog/products.ts",
+      "reasons": [
+        "signature mentions `prices`",
+        "imported by 3 files (hub)"
+      ],
+      "score": 1.3465735902799727,
+      "skeleton": "export interface Product {\n  id: string;\n  name: string;\n  price: number;\n  inStock: boolean;\n}\n\nconst products: Product[] = [\n  { id: \"p1\", name: \"T-Shirt\", price: 19.99, inStock: true },\n  { id: \"p2\", name: \"Mug\", price: 12.5, inStock: true },\n  { id: \"p3\", name: \"Sticker\", price: 3.0, inStock: false },\n];\n\nexport async function loadProduct(id: string): Promise<Product | null> { /* ... implementation hidden ... */ }\n\nexport async function listProducts(): Promise<Product[]> { /* ... implementation hidden ... */ }",
+      "tokens": 129
+    }
+  ],
+  "files_analyzed": 4,
+  "follow_only_count": 1,
+  "git_changes_considered": true,
+  "is_estimate": true,
+  "keywords": [
+    "show",
+    "prices",
+    "eur",
+    "format",
+    "two",
+    "decimals"
+  ],
+  "omitted_files": 0,
+  "relevant_dependencies": [
+    "src/catalog/products.ts",
+    "src/money.ts",
+    "src/payments/receipt.ts",
+    "src/cart/promo.ts"
+  ],
+  "relevant_symbols": [
+    {
+      "confidence": "high",
+      "kind": "function",
+      "line": 8,
+      "name": "formatMoney",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `eur`",
+        "exact symbol match `formatMoney`"
+      ],
+      "score": 8.0,
+      "signature": "function formatMoney(value: number, currency: Currency): string { const symbol = currency === \"EUR\" ? \"Γé¼\" : currency === \"CAD\" ? \"C$\" : \"$\"; return `${symbol}${value.toFixed(2)}`;"
+    },
+    {
+      "confidence": "low",
+      "kind": "constant",
+      "line": 8,
+      "name": "products",
+      "path": "src/catalog/products.ts",
+      "reasons": [
+        "signature mentions `prices`"
+      ],
+      "score": 1.0,
+      "signature": "products: Product[] = [ { id: \"p1\", name: \"T-Shirt\", price: 19.99, inStock: true }, { id: \"p2\", name: \"Mug\", price: 12.5, inStock: true }, { id: \"p3\", name: \"Sticker\", price: 3.0, inStock: false }, ]"
+    },
+    {
+      "confidence": "low",
+      "kind": "type",
+      "line": 1,
+      "name": "Currency",
+      "path": "src/money.ts",
+      "reasons": [
+        "signature mentions `eur`"
+      ],
+      "score": 1.0,
+      "signature": "type Currency = \"USD\" | \"EUR\" | \"CAD\";"
+    },
+    {
+      "confidence": "low",
+      "kind": "function",
+      "line": 12,
+      "name": "printReceipt",
+      "path": "src/payments/receipt.ts",
+      "reasons": [
+        "signature mentions `prices`"
+      ],
+      "score": 1.0,
+      "signature": "async function printReceipt( printer: Printer, items: Product[], discount: number, currency: Currency, ): Promise<PrinterRequest> { const lines = []; for (const item of items) { lines.push(`${item.name} ΓÇö ${item.price} ${currency}`); } if (..."
+    }
+  ],
+  "suggested_context": "# Context package for task: show prices in EUR and format them with two decimals\n\n\n## src/money.ts (score 8.27)\nexport type Currency = \"USD\" | \"EUR\" | \"CAD\";\n\nexport interface Money {\n  amount: number;\n  currency: Currency;\n}\n\nexport function formatMoney(value: number, currency: Currency): string { /* ... implementation hidden ... */ }\n\nexport function parseMoney(value: string, currency: Currency): Money { /* ... implementation hidden ... */ }\n\n## src/payments/receipt.ts (score 3.17)\nimport { Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface PrinterRequest {\n  lines: string[];\n}\n\nexport interface Printer {\n  print(req: PrinterRequest): void;\n}\n\nexport async function printReceipt(\n  printer: Printer,\n  items: Product[],\n  discount: number,\n  currency: Currency,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\n## src/cart/cart.ts (score 3.00)\nimport { Printer, PrinterRequest, printReceipt } from \"../payments/receipt\";\nimport { applyPromo, PromoCode } from \"./promo\";\nimport { loadProduct, Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface CartLine {\n  productId: string;\n  quantity: number;\n}\n\nexport interface Cart {\n  id: string;\n  lines: CartLine[];\n  currency: Currency;\n}\n\nexport function emptyCart(id: string, currency: Currency): Cart { /* ... implementation hidden ... */ }\n\nexport async function addProduct(\n  cart: Cart,\n  productId: string,\n  quantity = 1,\n): Promise<void> { /* ... implementation hidden ... */ }\n\nexport async function checkout(\n  cart: Cart,\n  promo: PromoCode | null,\n  printer: Printer,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\nexport function total(cart: Cart): number { /* ... implementation hidden ... */ }\n\n## src/catalog/products.ts (score 1.35)\nexport interface Product {\n  id: string;\n  name: string;\n  price: number;\n  inStock: boolean;\n}\n\nconst products: Product[] = [\n  { id: \"p1\", name: \"T-Shirt\", price: 19.99, inStock: true },\n  { id: \"p2\", name: \"Mug\", price: 12.5, inStock: true },\n  { id: \"p3\", name: \"Sticker\", price: 3.0, inStock: false },\n];\n\nexport async function loadProduct(id: string): Promise<Product | null> { /* ... implementation hidden ... */ }\n\nexport async function listProducts(): Promise<Product[]> { /* ... implementation hidden ... */ }\n",
+  "task": "show prices in EUR and format them with two decimals",
+  "total_tokens": 526
+}

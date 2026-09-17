@@ -1,0 +1,38 @@
+[
+  {
+    "dependencies": [
+      [
+        "src/auth/password.ts",
+        "hashPassword"
+      ],
+      [
+        "src/auth/password.ts",
+        "verifyPassword"
+      ],
+      [
+        "src/db/session.ts",
+        "Session"
+      ],
+      [
+        "src/db/users.ts",
+        "findUserByEmail"
+      ],
+      [
+        "src/db/users.ts",
+        "createSession"
+      ]
+    ],
+    "file": "src/auth/login.ts",
+    "kind": "function",
+    "line": 16,
+    "methods": [],
+    "name": "login",
+    "references": [
+      [
+        "src/db/session.ts",
+        "login"
+      ]
+    ],
+    "signature": "async function login(input: LoginInput): Promise<LoginResult> { const user = await findUserByEmail(input.email); if (!user) { return { ok: false, error: \"no user with that email\" }; } const valid = await verifyPassword(input.password, user...."
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "dependencies": [
+      [
+        "src/auth/login.ts",
+        "login"
+      ],
+      [
+        "src/auth/login.ts",
+        "register"
+      ],
+      [
+        "src/db/users.ts",
+        "User"
+      ],
+      [
+        "src/db/users.ts",
+        "createSession"
+      ]
+    ],
+    "file": "src/db/session.ts",
+    "kind": "interface",
+    "line": 4,
+    "methods": [],
+    "name": "Session",
+    "references": [
+      [
+        "src/auth/login.ts",
+        "Session"
+      ],
+      [
+        "src/db/users.ts",
+        "Session"
+      ]
+    ],
+    "signature": "interface Session { id: string; userId: string; expiresAt: number; }"
+  }
+]
