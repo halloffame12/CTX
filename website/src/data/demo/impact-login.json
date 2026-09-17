@@ -1,0 +1,106 @@
+{
+  "depth": 3,
+  "direct": [
+    {
+      "distance": 1,
+      "path": "src/db/session.ts",
+      "symbols": [
+        {
+          "end_byte": 178,
+          "end_line": 8,
+          "exported": true,
+          "file_id": 6,
+          "id": 22,
+          "kind": "interface",
+          "name": "Session",
+          "signature": "interface Session { id: string; userId: string; expiresAt: number; }",
+          "start_byte": 104,
+          "start_line": 4
+        },
+        {
+          "end_byte": 379,
+          "end_line": 13,
+          "exported": true,
+          "file_id": 6,
+          "id": 23,
+          "kind": "function",
+          "name": "authenticate",
+          "signature": "async function authenticate(email: string, password: string): Promise<Session | null> { const result = await login({ email, password }); return result.ok ? result.session ?? null : null; }",
+          "start_byte": 187,
+          "start_line": 10
+        },
+        {
+          "end_byte": 566,
+          "end_line": 19,
+          "exported": true,
+          "file_id": 6,
+          "id": 24,
+          "kind": "function",
+          "name": "signup",
+          "signature": "async function signup(user: User): Promise<void> { await register({ email: user.email, password: \"default\" }); const session = await createSession(user.id); void session; }",
+          "start_byte": 388,
+          "start_line": 15
+        }
+      ]
+    }
+  ],
+  "indirect": [
+    {
+      "distance": 2,
+      "path": "src/db/users.ts",
+      "symbols": [
+        {
+          "end_byte": 173,
+          "end_line": 8,
+          "exported": true,
+          "file_id": 7,
+          "id": 25,
+          "kind": "interface",
+          "name": "User",
+          "signature": "interface User { id: string; email: string; passwordHash: PasswordHash; }",
+          "start_byte": 94,
+          "start_line": 4
+        },
+        {
+          "end_byte": 393,
+          "end_line": 21,
+          "exported": true,
+          "file_id": 7,
+          "id": 26,
+          "kind": "function",
+          "name": "findUserByEmail",
+          "signature": "async function findUserByEmail( email: string, ): Promise<User | null> { if (email === \"ada@example.com\") { return { id: \"u1\", email, passwordHash: \"aabbcc\", }; } return null; }",
+          "start_byte": 182,
+          "start_line": 10
+        },
+        {
+          "end_byte": 540,
+          "end_line": 25,
+          "exported": true,
+          "file_id": 7,
+          "id": 27,
+          "kind": "function",
+          "name": "createUser",
+          "signature": "async function createUser(email: string, passwordHash: string): Promise<User> { return { id: `u-${Date.now()}`, email, passwordHash }; }",
+          "start_byte": 402,
+          "start_line": 23
+        },
+        {
+          "end_byte": 695,
+          "end_line": 29,
+          "exported": true,
+          "file_id": 7,
+          "id": 28,
+          "kind": "function",
+          "name": "createSession",
+          "signature": "async function createSession(userId: string): Promise<Session> { return { id: `s-${Date.now()}`, userId, expiresAt: Date.now() + 86_400_000 }; }",
+          "start_byte": 549,
+          "start_line": 27
+        }
+      ]
+    }
+  ],
+  "target": "src/auth/login.ts",
+  "tests": [],
+  "unknown": []
+}

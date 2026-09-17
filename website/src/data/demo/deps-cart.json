@@ -1,0 +1,43 @@
+{
+  "depends_on": [
+    {
+      "imported_symbol": "applyPromo",
+      "target": "src/cart/promo.ts"
+    },
+    {
+      "imported_symbol": "PromoCode",
+      "target": "src/cart/promo.ts"
+    },
+    {
+      "imported_symbol": "loadProduct",
+      "target": "src/catalog/products.ts"
+    },
+    {
+      "imported_symbol": "Product",
+      "target": "src/catalog/products.ts"
+    },
+    {
+      "imported_symbol": "Currency",
+      "target": "src/money.ts"
+    },
+    {
+      "imported_symbol": "Printer",
+      "target": "src/payments/receipt.ts"
+    },
+    {
+      "imported_symbol": "PrinterRequest",
+      "target": "src/payments/receipt.ts"
+    },
+    {
+      "imported_symbol": "printReceipt",
+      "target": "src/payments/receipt.ts"
+    }
+  ],
+  "file": "src/cart/cart.ts",
+  "used_by": [
+    {
+      "imported_symbol": "Cart",
+      "source": "src/cart/promo.ts"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "depends_on": [
+    {
+      "imported_symbol": "hashPassword",
+      "target": "src/auth/password.ts"
+    },
+    {
+      "imported_symbol": "verifyPassword",
+      "target": "src/auth/password.ts"
+    },
+    {
+      "imported_symbol": "Session",
+      "target": "src/db/session.ts"
+    },
+    {
+      "imported_symbol": "findUserByEmail",
+      "target": "src/db/users.ts"
+    },
+    {
+      "imported_symbol": "createSession",
+      "target": "src/db/users.ts"
+    }
+  ],
+  "file": "src/auth/login.ts",
+  "used_by": [
+    {
+      "imported_symbol": "login",
+      "source": "src/db/session.ts"
+    },
+    {
+      "imported_symbol": "register",
+      "source": "src/db/session.ts"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "language": "typescript",
+  "path": "src/cart/cart.ts",
+  "skeleton": "import { Printer, PrinterRequest, printReceipt } from \"../payments/receipt\";\nimport { applyPromo, PromoCode } from \"./promo\";\nimport { loadProduct, Product } from \"../catalog/products\";\nimport { Currency } from \"../money\";\n\nexport interface CartLine {\n  productId: string;\n  quantity: number;\n}\n\nexport interface Cart {\n  id: string;\n  lines: CartLine[];\n  currency: Currency;\n}\n\nexport function emptyCart(id: string, currency: Currency): Cart { /* ... implementation hidden ... */ }\n\nexport async function addProduct(\n  cart: Cart,\n  productId: string,\n  quantity = 1,\n): Promise<void> { /* ... implementation hidden ... */ }\n\nexport async function checkout(\n  cart: Cart,\n  promo: PromoCode | null,\n  printer: Printer,\n): Promise<PrinterRequest> { /* ... implementation hidden ... */ }\n\nexport function total(cart: Cart): number { /* ... implementation hidden ... */ }"
+}

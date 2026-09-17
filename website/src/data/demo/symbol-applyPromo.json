@@ -1,0 +1,22 @@
+[
+  {
+    "dependencies": [
+      [
+        "src/cart/cart.ts",
+        "Cart"
+      ]
+    ],
+    "file": "src/cart/promo.ts",
+    "kind": "function",
+    "line": 10,
+    "methods": [],
+    "name": "applyPromo",
+    "references": [
+      [
+        "src/cart/cart.ts",
+        "applyPromo"
+      ]
+    ],
+    "signature": "function applyPromo(code: PromoCode, subtotal: number): number { switch (code) { case \"SAVE10\": return round(subtotal * 0.1); case \"WELCOME5\": return round(subtotal * 0.05); case \"FREESHIP\": return 0; } }"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "end_line": 13,
+    "exported": true,
+    "file": "src/db/session.ts",
+    "id": 23,
+    "kind": "function",
+    "name": "authenticate",
+    "parent": null,
+    "path": "src/db/session.ts",
+    "signature": "async function authenticate(email: string, password: string): Promise<Session | null> { const result = await login({ email, password }); return result.ok ? result.session ?? null : null; }",
+    "start_line": 10,
+    "visibility": null
+  }
+]

@@ -1,0 +1,76 @@
+{
+  "depth": 3,
+  "direct": [
+    {
+      "distance": 1,
+      "path": "src/cart/promo.ts",
+      "symbols": [
+        {
+          "end_byte": 91,
+          "end_line": 3,
+          "exported": true,
+          "file_id": 4,
+          "id": 13,
+          "kind": "type",
+          "name": "PromoCode",
+          "signature": "type PromoCode = \"SAVE10\" | \"WELCOME5\" | \"FREESHIP\";",
+          "start_byte": 39,
+          "start_line": 3
+        },
+        {
+          "end_byte": 168,
+          "end_line": 8,
+          "exported": true,
+          "file_id": 4,
+          "id": 14,
+          "kind": "interface",
+          "name": "DiscountResult",
+          "signature": "interface DiscountResult { amount: number; applied: PromoCode; }",
+          "start_byte": 100,
+          "start_line": 5
+        },
+        {
+          "end_byte": 415,
+          "end_line": 19,
+          "exported": true,
+          "file_id": 4,
+          "id": 15,
+          "kind": "function",
+          "name": "applyPromo",
+          "signature": "function applyPromo(code: PromoCode, subtotal: number): number { switch (code) { case \"SAVE10\": return round(subtotal * 0.1); case \"WELCOME5\": return round(subtotal * 0.05); case \"FREESHIP\": return 0; } }",
+          "start_byte": 177,
+          "start_line": 10
+        },
+        {
+          "end_byte": 640,
+          "end_line": 27,
+          "exported": true,
+          "file_id": 4,
+          "id": 16,
+          "kind": "function",
+          "name": "applyPromoToCart",
+          "signature": "function applyPromoToCart( cart: Cart, code: PromoCode, ): DiscountResult { const subtotal = cart.lines.reduce((sum, l) => sum + l.quantity, 0); return { amount: applyPromo(code, subtotal), applied: code }; }",
+          "start_byte": 424,
+          "start_line": 21
+        },
+        {
+          "end_byte": 723,
+          "end_line": 31,
+          "exported": false,
+          "file_id": 4,
+          "id": 17,
+          "kind": "function",
+          "name": "round",
+          "signature": "function round(value: number): number { return Math.round(value * 100) / 100; }",
+          "start_byte": 642,
+          "start_line": 29
+        }
+      ]
+    }
+  ],
+  "indirect": [],
+  "target": "src/cart/cart.ts",
+  "target_symbol": "checkout",
+  "tests": [],
+  "unknown": []
+}
