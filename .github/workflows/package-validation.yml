@@ -15,6 +15,13 @@ on:
       - "packaging/**"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: package-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cargo-metadata:
     runs-on: ubuntu-latest

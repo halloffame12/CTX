@@ -16,9 +16,34 @@ $env:PATH = "$env:USERPROFILE\scoop\apps\mingw\current\bin;" + $env:PATH
 ```bash
 cargo build                     # dev build
 cargo test --lib --test integration --test skeleton   # unit + integration + golden
-cargo clippy --all-targets -- -D warnings
+cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --check
 ```
+
+## Finding an issue
+
+New contributors are welcome to browse issues labelled
+[good first issue](https://github.com/halloffame12/CTX/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+Before you start work on anything, leave a comment saying you're taking it so
+maintainers can avoid double-assignment. If an issue is not labelled, still
+feel free to ask.
+
+## Making a pull request
+
+1. **Fork + branch.** Work on a feature branch (`feat/xyz`, `fix/xyz`).
+2. **Match the quality gate** above before pushing: fmt, clippy (`-D warnings`,
+   `--all-features`), and the full test suite must pass.
+3. **Keep PRs focused.** One logical change per PR. If you're changing behavior,
+   describe it and update any docs that describe reality.
+4. **Review.** A maintainer will review; please respond to comments. CI runs
+   the full matrix on your PR automatically.
+
+### Commit style
+
+Conventional commits, e.g. `feat(parser): add Go method support` or
+`fix(git): resolve revision edge case`. Relevant scope tags include
+`cli`, `mcp`, `parser`, `context`, `graph`, `git`, `indexing`, `website`,
+`ci`, `packaging`, `docs`.
 
 ## Layout
 

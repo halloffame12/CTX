@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a new capability for ctx.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature. The clearer the use case, the easier
+        it is for maintainers to scope it. Note that `ctx` is intentionally a
+        local, deterministic, offline tool — no LLM/embedding features, no
+        telemetry, and no executing project code.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      description: What are you trying to do that ctx cannot do today?
+      placeholder: "When working on X, I need to ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the command, flag, MCP tool, or behavior you envision.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface should this affect?
+      options:
+        - CLI
+        - MCP server
+        - Both CLI and MCP
+        - Website / docs
+      default: 2
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What did you already try, and why wasn't it enough?
+  - type: markdown
+    attributes:
+      value: |
+        Implementation notes are welcome. If you plan to open a pull request,
+        check [CONTRIBUTING.md](../../CONTRIBUTING.md) first.

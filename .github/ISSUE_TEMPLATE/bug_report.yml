@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in ctx is broken or behaves incorrectly.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Before filing, please check
+        the [FAQ](https://halloffame12.github.io/CTX/docs/faq) and search
+        existing issues for a duplicate.
+  - type: input
+    id: version
+    attributes:
+      label: ctx version
+      description: Output of `ctx --version`
+      placeholder: e.g. ctx 0.1.6
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - WSL
+    validations:
+      required: true
+  - type: input
+    id: install
+    attributes:
+      label: How was ctx installed?
+      description: Homebrew, Scoop, npm (ctxai-cli), npx, built from source, other
+      placeholder: e.g. scoop install ctx
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact command(s) you ran and a minimal file/project if possible.
+      placeholder: |
+        1. cd my-project
+        2. ctx init
+        3. ctx search "foo" --json
+        4. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Paste error output. Use `-v` for verbose diagnostics on stderr.
+    validations:
+      required: true
+  - type: input
+    id: lang
+    attributes:
+      label: Languages involved
+      description: TypeScript, JavaScript, Python, Rust, Go — and the file extension if relevant
+      placeholder: e.g. Rust (rs)

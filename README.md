@@ -2,7 +2,32 @@
 
 **Codebase intelligence and context engine for AI coding agents.**
 
+[![CI](https://github.com/halloffame12/CTX/actions/workflows/ci.yml/badge.svg)](https://github.com/halloffame12/CTX/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/halloffame12/CTX?sort=semver&color=%230d9488)](https://github.com/halloffame12/CTX/releases)
+[![npm](https://img.shields.io/npm/v/ctxai-cli?color=%230d9488)](https://www.npmjs.com/package/ctxai-cli)
+[![License](https://img.shields.io/github/license/halloffame12/CTX?color=%230d9488)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-stdio-6e4ea7?logo=modelcontextprotocol)](https://glama.ai/mcp/servers/halloffame12/CTX)
+
 Documentation: **[https://halloffame12.github.io/CTX](https://halloffame12.github.io/CTX)** · [docs overview](https://halloffame12.github.io/CTX/docs)
+
+## Table of contents
+
+- [Why does it exist?](#why-does-it-exist)
+- [Install ctx](#install-ctx)
+- [Quick start](#quick-start)
+- [CLI reference](#cli-reference)
+- [JSON mode](#json-mode)
+- [MCP server](#mcp-server)
+- [Supported languages](#supported-languages)
+- [Security](#security)
+- [Privacy](#privacy)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [License](#license)
+
+---
 
 `ctx` builds a queryable code graph for a project — files, symbols, signatures
 and imports — and turns it into compact, relevance-ranked context for AI tools
@@ -426,6 +451,31 @@ cargo test --lib --test integration --test skeleton   # unit + integration + gol
 cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --check
 ```
+
+### Repository layout
+
+```text
+src/
+  parser/     tree-sitter extractors (Rust, TypeScript/JS, Python, Go) + resolver
+  graph/      SQLite code graph: database, symbols, dependencies, impact
+  indexing/   scanning (gitignore-aware), hashing, incremental reindex
+  context/    skeletons, ranking, context package builder
+  git/        diff & changed tracking via the `git` binary
+  mcp/        JSON-RPC server, tools, protocol types
+  commands/   CLI + MCP command implementations
+tests/        integration + skeleton golden tests
+packaging/    Homebrew tap, WinGet, Scoop manifests
+packages/npm/ ctxai-cli meta package + 6 platform packages
+scripts/      release + install tooling
+website/      Next.js docs site (static export -> GitHub Pages)
+```
+
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) (setup, conventions, testing) and
+[AGENTS.md](AGENTS.md) (the invariants every change must preserve). Security
+issues go to [SECURITY.md](SECURITY.md). All participants are expected to
+follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 GitHub Actions CI runs fmt, clippy (`-D warnings`, all targets/features), tests
 and release builds on Linux / macOS / Windows. The release workflow publishes

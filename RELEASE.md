@@ -77,3 +77,39 @@ multiple files.**
 `release.yml` and `npm.yml` each fail-fast if the tag / requested version does
 not match `Cargo.toml`. `package-validation.yml` runs on every push/PR that
 touches packaging and checks Cargo + npm + Homebrew + Winget + Scoop agree.
+
+## Code signing
+
+As of `0.1.6` release binaries are **not** code-signed. That is acceptable to
+users on stock Linux, macOS (with the standard Gatekeeper "verify developer"
+prompt) and Windows (with Smart App Control off), but it **blocks** users on
+Windows with Smart App Control / WDAC enforced and adds friction on hardened
+macOS machines. Before signing can ship, the maintainer must provision
+credentials; this is tracked separately from releases.
+
+Planned signing (each step is a CI job in `release.yml`, gated on secrets
+existing so an unsigned release still ships):
+
+1. **Windows (Authenticode)** — use [Azure Trusted Signing] (low cost, no
+   hardware token, CI-friendly). Additions to `release.yml`:
+   - secrets: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`,
+     `AZURE_TRUSTED_SIGNING_ACCOUNT`, `AZURE_TRUSTED_SIGNING_CERT_PROFILE`.
+   - after `Stage artifact`, run Trusted Signing's `SignClient` (or
+     `osslsigncode sign`) against `ctx-windows-*.exe`; timestamp using the
+     configured RFC 3161 URL.
+2. **macOS (Developer ID + notarization)** — requires an Apple Developer
+   account. Additions:
+   - secrets: `APPLE_CERTIFICATE` (base64 `.p12` and
+     `APPLE_CERTIFICATE_PASSWORD`), `APPLE_TEAM_ID`.
+   - `codesign --options runtime` each `ctx-macos-*` binary, then
+     `xcrun notarytool submit` and `stapler` (the Apple Notary GitHub Action
+     can be used).
+3. **Verify** — extend `scripts/verify-release.sh` to confirm signatures
+   (`Get-AuthenticodeSignature` / `codesign -dv`). Update installer scripts to
+   log signed vs unsigned status, and update `SECURITY.md` accordingly.
+
+Until the secrets exist, releases remain unsigned; the signing jobs are written
+with `if:` conditions on the presence of the relevant secret so the pipeline
+never blocks on them.
+
+[Azure Trusted Signing]: https://learn.microsoft.com/azure/trusted-signing/

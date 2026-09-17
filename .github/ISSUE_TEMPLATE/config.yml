@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://halloffame12.github.io/CTX/docs
+    about: CLI reference, MCP setup, and configuration docs.
+  - name: FAQ
+    url: https://halloffame12.github.io/CTX/docs/faq
+    about: Common questions about ctx, including packaging and security.
+  - name: Security
+    url: https://github.com/halloffame12/CTX/security/advisories/new
+    about: Please report security vulnerabilities privately, not as issues.

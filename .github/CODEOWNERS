@@ -1,0 +1,10 @@
+# Default owner for review requests on pull requests.
+* @halloffame12
+
+# High-touch, high-risk areas deserve explicit review.
+/.github/workflows/     @halloffame12
+/scripts/               @halloffame12
+/packaging/             @halloffame12
+/packages/npm/          @halloffame12
+/src/parser/            @halloffame12
+/src/mcp/               @halloffame12
