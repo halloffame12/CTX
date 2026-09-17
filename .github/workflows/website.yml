@@ -44,7 +44,7 @@ jobs:
           test -f out/index.html && echo "export ok"
           ls out | head
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           name: github-pages
           path: website/out
