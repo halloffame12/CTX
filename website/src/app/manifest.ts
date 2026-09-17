@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
       "A local, deterministic code graph for AI agents: symbol search, impact analysis, and ranked context over stdio.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fafaf9",
+    background_color: "#f6f6f4",
     theme_color: "#0d9488",
     icons: [
       {

@@ -20,7 +20,7 @@ export default function VideoPlayer({
   return (
     <div>
       <div
-        className={`relative w-full overflow-hidden rounded-xl border border-line bg-ink shadow-lg ${aspect}`}
+        className={`relative w-full overflow-hidden rounded-lg border border-line-strong bg-ink shadow-sm ${aspect}`}
       >
         {playing ? (
           <video
@@ -38,23 +38,19 @@ export default function VideoPlayer({
             type="button"
             onClick={() => setPlaying(true)}
             aria-label={`Play video: ${title}`}
-            className="group relative block h-full w-full overflow-hidden text-left"
+            className="group relative block h-full w-full overflow-hidden bg-ink text-left"
           >
-            <span className="absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,rgba(13,148,136,0.35),rgba(13,148,136,0.08)_45%,transparent_70%),linear-gradient(180deg,rgba(28,25,23,0.55),rgba(28,25,23,0.9))]" />
-            <span className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:44px_44px] opacity-40" />
-
-            <span className="absolute inset-x-0 top-0 flex items-center justify-between p-4 font-mono text-[11px] uppercase tracking-widest text-white/60">
+            <span className="absolute inset-x-0 top-0 flex items-center justify-between p-3.5 font-mono text-[11px] uppercase tracking-widest text-white/50 sm:p-4">
               <span>{eyebrow ?? "ctx"}</span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block size-1.5 rounded-full bg-accent" />
+                <span className="inline-block size-1.5 rounded-full bg-accent" aria-hidden />
                 watch
               </span>
             </span>
-
             <span className="absolute inset-0 grid place-items-center">
-              <span className="grid size-16 place-items-center rounded-full bg-white/95 shadow-xl ring-8 ring-white/10 transition-transform duration-200 group-hover:scale-105 group-active:scale-95 sm:size-20">
+              <span className="grid size-14 place-items-center rounded-md border border-white/20 bg-white/5 text-white backdrop-blur-sm transition-colors duration-200 group-hover:border-white/40 group-hover:bg-white/10 group-active:scale-95 sm:size-16">
                 <svg
-                  className="ml-0.5 size-7 text-ink sm:size-8"
+                  className="ml-0.5 size-6 sm:size-7"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   aria-hidden
@@ -63,13 +59,12 @@ export default function VideoPlayer({
                 </svg>
               </span>
             </span>
-
             <span className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <span className="block max-w-xl text-lg font-semibold leading-snug text-white sm:text-2xl">
+              <span className="block max-w-xl text-lg font-semibold leading-snug text-white sm:text-xl">
                 {title}
               </span>
               {caption && (
-                <span className="mt-1 block max-w-xl text-sm leading-6 text-white/70">
+                <span className="mt-1 block max-w-xl text-[13px] leading-6 text-white/60">
                   {caption}
                 </span>
               )}
@@ -77,9 +72,9 @@ export default function VideoPlayer({
           </button>
         )}
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-ink-faint">
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-ink-faint">
         <span>{title}</span>
-        {caption && <span>{caption}</span>}
+        <span>mp4 · 1080p · click to play</span>
       </div>
     </div>
   );
