@@ -204,7 +204,7 @@ export default function Home() {
             </div>
 
             <div className="mt-14 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-10">
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <p className="font-mono text-[11px] uppercase tracking-widest text-ink-faint">
                   one command · one local graph
                 </p>
@@ -224,7 +224,7 @@ export default function Home() {
                   ]}
                 />
               </div>
-              <dl className="grid gap-px overflow-hidden rounded-lg border border-line bg-line-strong">
+              <dl className="min-w-0 grid gap-px overflow-hidden rounded-lg border border-line bg-line-strong">
                 {STATS.map((s) => (
                   <div
                     key={s.label}
@@ -350,7 +350,7 @@ export default function Home() {
         {/* ---------------- DETERMINISTIC CONTEXT ---------------- */}
         <section className="border-y border-line bg-surface">
           <div className="ctx-container grid items-start gap-12 py-20 sm:py-28 lg:grid-cols-2 lg:gap-16">
-            <div className="lg:sticky lg:top-24">
+            <div className="min-w-0 lg:sticky lg:top-24">
               <p className="font-mono text-[11px] uppercase tracking-widest text-accent-deep">
                 04 / deterministic context
               </p>
@@ -368,7 +368,7 @@ export default function Home() {
                 <li>— every file explains why it was chosen</li>
               </ul>
             </div>
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <CodeBlock
                 title="ctx context “add Google OAuth”"
                 code={`$ ctx context "add Google OAuth"
@@ -457,7 +457,7 @@ Context budget: 1,842 / 12,000 tokens`}
         {/* ---------------- MCP ---------------- */}
         <section className="border-y border-line bg-surface">
           <div className="ctx-container grid items-start gap-12 py-20 sm:py-28 lg:grid-cols-2 lg:gap-16">
-            <div className="lg:sticky lg:top-24">
+            <div className="min-w-0 lg:sticky lg:top-24">
               <p className="font-mono text-[11px] uppercase tracking-widest text-accent-deep">
                 06 / MCP over stdio
               </p>
@@ -481,7 +481,7 @@ Context budget: 1,842 / 12,000 tokens`}
                 ))}
               </div>
             </div>
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <CodeBlock
                 title="opencode / Claude Desktop"
                 code={`{
