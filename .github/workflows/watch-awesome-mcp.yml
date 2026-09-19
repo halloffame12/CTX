@@ -1,0 +1,47 @@
+name: Watch awesome-mcp PR
+
+on:
+  schedule:
+    # Daily check: 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PR state
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STATE=$(gh pr view 12088 --repo punkpeye/awesome-mcp-servers --json state --jq .state 2>/dev/null || echo "error")
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+      - name: Sync tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="awesome-mcp-servers PR #12088 (CTX listing)"
+          if [ "${{ steps.pr.outputs.state }}" = "MERGED" ]; then
+            gh issue close \
+              --repo halloffame12/CTX \
+              --title "$TITLE" \
+              --comment "Awesome-mcp PR #12088 was merged: CTX is now listed. 🎉" 2>/dev/null || true
+            echo "merged"
+          elif [ "${{ steps.pr.outputs.state }}" = "CLOSED" ]; then
+            gh issue close \
+              --repo halloffame12/CTX \
+              --title "$TITLE" \
+              --comment "Awesome-mcp PR #12088 was closed without merging." 2>/dev/null || true
+            echo "closed"
+          else
+            gh issue create \
+              --repo halloffame12/CTX \
+              --title "$TITLE" \
+              --body "PR still **${{ steps.pr.outputs.state }}**. Action: if weeks pass without a maintainer response, re-run the rebase + comment round-trip. PR: https://github.com/punkpeye/awesome-mcp-servers/pull/12088" 2>/dev/null || true
+            echo "still open"
+          fi
