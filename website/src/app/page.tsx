@@ -661,9 +661,9 @@ ctx mcp         # expose the code graph to your agent`}
               />
             </div>
             <p className="mt-8 text-center text-sm leading-6 text-ink-faint">
-              Prefer from source?{" "}
-              <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-[0.85em] text-ink">cargo install</code>{" "}
-              is available for devs, plus per-platform binaries on every release.
+              On Windows?{" "}
+              <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-[0.85em] text-ink">winget install halloffame12.CTX</code>{" "}
+              works too, plus per-platform binaries on every release.
             </p>
           </div>
         </section>
