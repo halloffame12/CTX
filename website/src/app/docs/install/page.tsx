@@ -4,7 +4,7 @@ import { H1, P, DocsShell, H2, Code, Note, Ul } from "@/components/Sections";
 export const metadata: Metadata = {
   title: "Installation",
   description:
-    "Install ctx via npm or prebuilt binaries, or build from source. Requires Rust 1.85+ only when building from source.",
+    "Install ctx via npm, winget, scoop, Homebrew, prebuilt binaries, or build from source. Requires Rust 1.85+ only when building from source.",
 };
 
 export default function InstallPage() {
@@ -45,6 +45,18 @@ ctx --version`}
         arm64), Linux (x64 + arm64), and Windows (x64 + arm64). This is the same
         package the MCP examples use with{" "}
         <Code>npx -y ctxai-cli mcp</Code>.
+      </P>
+
+      <H2 id="windows">Via winget (Windows)</H2>
+      <pre className="ctx-scroll overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-6 text-ink">
+{`winget install halloffame12.CTX
+ctx --version`}
+      </pre>
+      <P>
+        Published in the winget-pkgs community repository. Scoop is also
+        available:{" "}
+        <Code>scoop bucket add ctx https://github.com/halloffame12/scoop-ctx</Code>{" "}
+        then <Code>scoop install ctx</Code>.
       </P>
 
       <H2 id="cargo">Build from source</H2>

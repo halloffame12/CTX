@@ -118,9 +118,11 @@ VC++ Redistributable — do not remove that flag.
   `homebrew-ctx` / `scoop-ctx` tap repos.
 - `npm.yml` auto-publishes all 7 packages on GitHub-release-published (if the
   trigger ever misses, `gh workflow run npm.yml --ref main -f version=X.Y.Z`).
-- There is **no crates.io release** and **no Winget submission** — docs say so
-  explicitly. Do not re-add `cargo install ctxai-cli` / `winget install`
-  instructions without actually publishing those channels first.
+- There is **no crates.io release** — docs say so explicitly. `winget install
+  halloffame12.CTX` IS live (microsoft/winget-pkgs PR #417409 merged); keep the
+  install docs honest about which channels are actually published. Do not
+  re-add `cargo install ctxai-cli` instructions without actually publishing
+  that channel first.
 
 ## 7. Docs = reality (website truth rule)
 

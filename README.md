@@ -83,6 +83,7 @@ whichever ecosystem you already use:
 | --- | --- |
 | **macOS / Linux** (Homebrew) | `brew tap halloffame12/CTX && brew install ctx` |
 | **Windows** (Scoop) | `scoop bucket add ctx https://github.com/halloffame12/scoop-ctx && scoop install ctx` |
+| **Windows** (winget) | `winget install halloffame12.CTX` |
 | **Node.js** (npm) | `npm install -g ctxai-cli` |
 | **Run without installing** | `npx ctxai-cli --version` |
 | **Direct** | `curl -fsSL https://ctx.dev/install.sh | sh` (Unix) or `irm https://ctx.dev/install.ps1 | iex` (Windows) — or grab a binary from [GitHub Releases](https://github.com/halloffame12/CTX/releases) |

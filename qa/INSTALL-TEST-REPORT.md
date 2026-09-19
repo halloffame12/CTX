@@ -1,5 +1,10 @@
 # ctx v0.1.1 — Production Installation Test Report
 
+> **Status update (2026-09-19):** Winget blocker cleared — PR
+> microsoft/winget-pkgs#417409 was **merged**, and
+> `winget install halloffame12.CTX` and `winget show halloffame12.CTX`
+> verify live (v0.1.6). Addressed in main; see README + /docs/install.
+
 Date: 2026-08-15
 Scope: Every installation method documented on https://ctx.sumitchauhan.me (website /docs/install) and README.md lines 52–63.
 Constraint honored: no product code was modified during testing.
