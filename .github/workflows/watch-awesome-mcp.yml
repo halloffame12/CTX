@@ -14,34 +14,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check PR state
+      - name: Resolve PR state
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           STATE=$(gh pr view 12088 --repo punkpeye/awesome-mcp-servers --json state --jq .state 2>/dev/null || echo "error")
           echo "state=$STATE" >> "$GITHUB_OUTPUT"
+      - name: Find existing tracking issue
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NUM=$(gh issue list --repo halloffame12/CTX --state open \
+            --json number,title --jq '[.[] | select(.title | contains("awesome-mcp-servers PR #12088"))][0].number' 2>/dev/null)
+          if [ -n "$NUM" ] && [ "$NUM" != "null" ]; then
+            echo "number=$NUM" >> "$GITHUB_OUTPUT"
+          fi
       - name: Sync tracking issue
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TITLE="awesome-mcp-servers PR #12088 (CTX listing)"
-          if [ "${{ steps.pr.outputs.state }}" = "MERGED" ]; then
-            gh issue close \
-              --repo halloffame12/CTX \
-              --title "$TITLE" \
-              --comment "Awesome-mcp PR #12088 was merged: CTX is now listed. 🎉" 2>/dev/null || true
-            echo "merged"
-          elif [ "${{ steps.pr.outputs.state }}" = "CLOSED" ]; then
-            gh issue close \
-              --repo halloffame12/CTX \
-              --title "$TITLE" \
-              --comment "Awesome-mcp PR #12088 was closed without merging." 2>/dev/null || true
-            echo "closed"
+          STATE="${{ steps.pr.outputs.state }}"
+          EXISTING="${{ steps.find.outputs.number }}"
+          MESSAGE="PR status: **$STATE** — https://github.com/punkpeye/awesome-mcp-servers/pull/12088"
+          if [ "$STATE" = "MERGED" ]; then
+            MESSAGE="$MESSAGE — merged! CTX is live in awesome-mcp-servers. 🎉"
+          elif [ "$STATE" = "CLOSED" ]; then
+            MESSAGE="$MESSAGE — closed without merging."
+          fi
+          if [ -n "$EXISTING" ]; then
+            if [ "$STATE" = "MERGED" ] || [ "$STATE" = "CLOSED" ]; then
+              gh issue close "$EXISTING" --repo halloffame12/CTX --comment "$MESSAGE"
+            else
+              gh issue comment "$EXISTING" --repo halloffame12/CTX --body "$MESSAGE"
+            fi
           else
-            gh issue create \
-              --repo halloffame12/CTX \
-              --title "$TITLE" \
-              --body "PR still **${{ steps.pr.outputs.state }}**. Action: if weeks pass without a maintainer response, re-run the rebase + comment round-trip. PR: https://github.com/punkpeye/awesome-mcp-servers/pull/12088" 2>/dev/null || true
-            echo "still open"
+            if [ "$STATE" = "MERGED" ] || [ "$STATE" = "CLOSED" ]; then
+              echo "no tracking issue to close (state=$STATE)"
+            else
+              gh issue create --repo halloffame12/CTX \
+                --title "awesome-mcp-servers PR #12088 (CTX listing)" \
+                --body "PR still **$STATE**. Action: if weeks pass without a maintainer response, re-run the rebase + comment round-trip. PR: https://github.com/punkpeye/awesome-mcp-servers/pull/12088"
+            fi
           fi
